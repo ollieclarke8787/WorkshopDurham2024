@@ -1,0 +1,6 @@
+-*
+Compute the Ehrhart series and Ehrhart delta-vector of a rational polytope
+
+*-
+
+needsPackage "Poly
