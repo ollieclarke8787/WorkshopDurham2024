@@ -1,0 +1,65 @@
+needsPackage "FourTiTwo"
+needsPackage "NumericalAlgebraicGeometry"
+
+MLIdeal = method(
+    Options => {
+	minRandomValue => 10,
+	maxRandomValue => 99
+	}
+    )
+
+MLIdeal(Matrix, List, List) := opts -> (A, w, u) -> (
+    n := numColumns A;
+    d := numRows A;
+    assert(n == #w);
+    assert(n == #u);
+    R := QQ[for i from 1 to d list t_i];
+    g := -1 + sum for i from 0 to n-1 list w_i * product for j from 0 to d-1 list R_j^(A_(j,i));
+    M := A * transpose matrix {u} | transpose matrix {for j from 0 to d-1 list R_j * diff(R_j, g)};
+    minors(2, M) + ideal g
+    )
+
+-- random u
+MLIdeal(Matrix, List) := opts -> (A, w) -> (
+    n := numColumns A;
+    u := for i from 1 to n list random(opts.minRandomValue, opts.maxRandomValue);
+    MLIdeal(A, w, u)
+    )
+
+complexSolutions = method()
+complexSolutions(Ideal) := I -> (
+    R := ring I;
+    S := CC[gens R];
+    RtoS := map(S, R, gens S);
+    polys := first entries RtoS mingens I;
+    solveSystem polys
+    )
+
+end --
+restart
+load "MLDegrees.m2"
+
+A = matrix {{1, 1, 1, 1, 1, 1}, {0, 1, 2, 0, 1, 0}, {0, 0, 0, 1, 1, 2}}
+
+-- different w's giving degrees 4,3,2,1 respectively
+degree MLIdeal(A, {1,1,1,1,1,1})
+degree MLIdeal(A, {1,2,1,1,2,2})
+degree MLIdeal(A, {1,2,1,1,2,1})
+degree MLIdeal(A, {1,2,1,2,2,1})
+
+-- get complex solutions:
+-- Observation - some of these solutions are duplicated!
+
+I = MLIdeal(A, {1,1,1,1,1,1})
+netList complexSolutions I
+
+I = MLIdeal(A, {1,2,1,2,2,1})
+netList complexSolutions I
+
+I = MLIdeal(A, {1,2,1,1,2,2})
+netList complexSolutions I
+
+I = MLIdeal(A, {1,2,1,1,2,1})
+netList complexSolutions I
+
+

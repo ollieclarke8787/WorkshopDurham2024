@@ -1,0 +1,11 @@
+--
+-- w = {{1,1,1},{1,a,b},{1,c,d}}
+-- p_ij
+-- u_ij
+
+R = QQ[p_(1,1) .. p_(3,3), u_(1,1) .. u_(3,3), a,b,c,d, MonomialOrder => Eliminate(7)]
+selectInSubring(1, vars R)
+
+I = ideal(
+    
+    )
