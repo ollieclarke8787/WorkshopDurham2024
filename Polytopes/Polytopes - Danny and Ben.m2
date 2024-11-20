@@ -58,3 +58,10 @@ PolynomialInterpolation(List,List,Ring) := (X,Y,R) -> (
 )
 
 
+end
+
+load "Polytopes - Danny and Ben.m2"
+
+P = convexHull matrix {{1,2,3},{1/3,1/2,5/3}}
+
+TabularOfValues(P)
