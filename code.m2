@@ -367,7 +367,6 @@ methods unitCube
 
 
 help "help"
-
 methods unitCube
 
 code 0
@@ -444,13 +443,3 @@ Then use the functions 'latticeOfFlats' and 'chains' to count the number of chai
 
 -- [Markov bases]
 -- ennumeration of all Markov bases of a toric ideal
-<<<<<<< HEAD
-=======
-
-
-
-
--- hi from ollie:
--- kill: crtl-x crtl-c
--- save: crtl-x crtl-s
->>>>>>> 2eef146fc7ba8859e961b54145ecb243270392a2
