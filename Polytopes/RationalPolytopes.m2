@@ -68,7 +68,7 @@ PolynomialInterpolation(List,List,Ring) := (X,Y,R) -> (
 	    );
 	);
     S:=solve(matrix(Xpower),transpose matrix(R, {Y}));
-    Rpoly:=R[t];
+    Rpoly:=R[symbol "t"];
     sum for i in 0..length X - 1 list S_(i,0)*t^i
     )
 
