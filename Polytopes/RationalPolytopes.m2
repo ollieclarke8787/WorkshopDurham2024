@@ -3,24 +3,25 @@ newPackage(
     Version => "0.1",
     Date => "",
     Headline => "A package for Ehrhart theory of rational polytopes",
-    Authors => {{ Name => "", Email => "", HomePage => ""}},
+    Authors => {{ Name => "Victoria Schleis", Email => "victoria.m.schleis@durham.ac.uk", HomePage => "https://victoriaschleis.github.io/"},
+		{ Name => "Alex Milner", Email => "A.J.C.Milner@sms.ed.ac.uk", HomePage => ""}},
     AuxiliaryFiles => false,
     DebuggingMode => false,
     PackageExports => {"Polyhedra"}
     )
 
-export {"fx","Ehrhart","EhrhartQP"}
+
+export {"hStar","Ehrhart","EhrhartQP"}
 
 -* Code section *-
-fx = x -> x^2;
 
 IsLatticePolytope=method()
 IsLatticePolytope(Polyhedron) := P -> (
     M := vertices P;
     test := true;
     for a in flatten entries M do (
-	if denominator(a) != 1 then ( 
-	    test = false; 
+	if denominator(a) != 1 then (
+	    test = false;
 	    );
 	);
     test
@@ -67,7 +68,8 @@ PolynomialInterpolation(List,List,Ring) := (X,Y,R) -> (
 	    );
 	);
     S:=solve(matrix(Xpower),transpose matrix(R, {Y}));
-    Rpoly:=R[t];
+    Rpoly:=R[symbol "t"];
+    t:=Rpoly_0;
     sum for i in 0..length X - 1 list S_(i,0)*t^i
     )
 
@@ -78,11 +80,11 @@ Ehrhart (Polyhedron,ZZ):=(P, i) -> (
     k:=lcm for i in flatten entries vertices P list denominator promote(i,QQ);
     R:=QQ[getSymbol "x"];
     x:=R_"x";
-    S:=for j from 0 to n list i+j*k; 
+    S:=for j from 0 to n list i+j*k;
     if n==0 and (not isEmpty P) then return 1+0*x;
     if isEmpty P then return 0+0*x;
     v:=matrix apply(S,h->(
-	    if h == 0 then {0} 
+	    if h == 0 then {0}
 	    else {-1+#latticePoints(h*P)}
 	    )
 	);
@@ -97,29 +99,29 @@ EhrhartQP=method()
 EhrhartQP Polyhedron:=P->(
     k:=lcm for i in flatten entries vertices P list denominator promote(i,QQ);
     for i from 0 to k-1 list Ehrhart(P,i))
-    
+
 P=convexHull transpose matrix "1,0;-1,0;0,1/2;0,-1/2"
 EhrhartQP(P)
 
 
 
 hStar = method()
-hStar(Polyhedron) := P -> (
+hStar(Polyhedron , Ring) := (P, R) -> (
   n:=dim P;
   dnom := lcm for i in flatten entries vertices P list denominator promote(i,QQ);  
-  R:=QQ[t];
   p:=1;
+  t:=R_0;
   for i from 1 to n*dnom+1 do (p=p + #latticePoints(i*P) * t^i);
   f:=0;
-  for i from 0 to n*dnom+1 do f=f+part(i,p * (1-t^dnom)^(n+1));
+  r:=(1-t^dnom)^(n+1);
+  for i from 0 to n*dnom+1 do f=f+part(i,p * r);
   f
   )
 
-exs={transpose matrix "1,0;-1,0;0,1/2;0,-1/2", 
-    transpose matrix "0; 1/2",
-    transpose matrix "0,0,0;1,0,0;0,1,0;0,0,1"};
-
-hStar \convexHull\exs
+hStar(Polyhedron) := P -> ( 
+  R:=QQ[t];
+  hStar(P,R)
+  )
 
 
 
@@ -178,12 +180,43 @@ doc ///
       EhrhartQP(convexHull transpose matrix "0,0;1/2,0;0,1/2")
 ///  
     
+
+doc ///
+  Key
+    hStar
+  Headline
+    a method
+  Usage
+    hStar P
+    hStar(P,R)
+  Inputs
+    P : Polyhedron 
+      A convex polyhedron which must be compact
+    R : Ring 
+      A ring in one variable
+  Outputs
+    f : RingElement
+      the hStar polynomial (in the ring R) of the input Polytope
+  Description
+    Text
+      Computes the hStar polynomial of a polytope
+    Example
+      hStar convexHull transpose matrix "0; 1/2"
+      hStar convexHull transpose matrix "0,0,0;1,0,0;0,1,0;0,0,1"
+      hStar convexHull transpose matrix "1,0;-1,0;0,1/2;0,-1/2"
+  SeeAlso
+    RationalPolytopes
+///
   
 
 
 -* Test section *-
-TEST /// -- (0)
-assert(1 == fx 1)
+TEST /// -- (1)
+R=QQ[t]
+assert(1_R == hStar(convexHull transpose matrix "0,0,0;1,0,0;0,1,0;0,0,1"),R)
+assert(t^5+3*t^4+4*t^3+4*t^2+3*t+1 == hStar(convexHull transpose matrix "1,0;-1,0;0,1/2;0,-1/2"),R)
+assert(t+1 == hStar(convexHull transpose matrix "0; 1/2"),R)
+assert(t^5+t^3+t^2+1 == hStar(convexHull transpose matrix "1/4; 1/2"),R)
 ///
 
 end--
