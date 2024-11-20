@@ -9,7 +9,7 @@ newPackage(
     PackageExports => {"Polyhedra"}
     )
 
-export {"fx"}
+export {"fx","PolynomialInterpolation"}
 
 -* Code section *-
 fx = x -> x^2;
@@ -58,17 +58,15 @@ TabularOfValues(Polyhedron) := P -> (
 )
 
 PolynomialInterpolation=method()
-PolynomialInterpolation(List,List,Ring) := (X,Y,R) -> (
-    Xpower := mutableMatrix(R, length X, length X);
+PolynomialInterpolation(List,List,PolynomialRing) := (X,Y,R) -> (
+    Xpower := mutableMatrix(coefficientRing R, length X, length X);
     for i in 0..length X-1 do (
 	for j in 0..length X-1 do (
-	    print(i,j);
-	    Xpower_(i,j) = (X#j)^i;
+	    Xpower_(i,j) = (X#i)^j;
 	    );
 	);
-    S:=solve(matrix(Xpower),transpose matrix(R, {Y}));
-    Rpoly:=R[t];
-    sum for i in 0..length X - 1 list S_(i,0)*t^i
+    S:=solve(matrix(Xpower),transpose matrix(coefficientRing R, {Y}));
+    sum for i in 0..length X - 1 list S_(i,0)*((generators R)#0)^i
     )
 
 
@@ -132,7 +130,7 @@ doc ///
   Headline
     A package for Ehrhart theory of rational polytopes
 ///
-
+ fx := x -> x^2
 
 doc ///
   Key
@@ -150,12 +148,37 @@ doc ///
   Description
     Text
       it squares things
-    Example
-      fx 4
-      fx 2
   SeeAlso
     RationalPolytopes
 ///
+
+
+doc ///
+  Key
+    PolynomialInterpolation
+  Headline
+    A method that compute the interpolation polynomial of a set of points.
+  Usage
+    P = PolynomialInterpolation(X,Y,R)
+  Inputs
+    X : List
+      a list of the x-coordinates of the points.
+    Y : List
+      a list of the y-coordinates of the points in the same order as in X.
+    R : PolynomialRing
+      an univariate polynomial ring over a ring containing all the coefficients of X and Y.
+  Outputs
+    P : RingElement
+      The interpolation polynomial.
+  Description
+    Text
+      A method that computes the interpolation polynomial of a set of points defined by (X_i,Y_i).
+    Example
+      PolynomialInterpolation({1,2,3},{1,4,9},QQ[x])
+  SeeAlso
+    RationalPolytopes
+///
+
 
 
 -* Test section *-
