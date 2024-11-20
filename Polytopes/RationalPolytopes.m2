@@ -89,7 +89,7 @@ Ehrhart (Polyhedron,ZZ):=(P, i) -> (
     v=promote(v,QQ);
     M:=promote(matrix apply(S,a->reverse apply(n+1,j->( a^j ))),QQ);
     M=flatten entries((inverse M)*v);
-    1+sum apply(n,a->M#a*x^(n-a))
+    1+sum apply(n+1,a->M#a*x^(n-a))
     )
 
 
@@ -117,7 +117,7 @@ hStar(Polyhedron , Ring) := (P, R) -> (
   )
 
 hStar(Polyhedron) := P -> ( 
-  R:=QQ[t];
+  R:=QQ[Variables => 1];
   hStar(P,R)
   )
 
