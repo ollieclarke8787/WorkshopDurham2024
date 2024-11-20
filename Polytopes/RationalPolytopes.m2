@@ -171,12 +171,15 @@ doc ///
     a method
   Usage
     hStar P
+    hStar(P,R)
   Inputs
     P : Polyhedron 
       A convex polyhedron which must be compact
+    R : Ring 
+      A ring in one variable
   Outputs
-    f : Polynomial
-      the hStar polynomial of the input Polytope
+    f : RingElement
+      the hStar polynomial (in the ring R) of the input Polytope
   Description
     Text
       Computes the hStar polynomial of a polytope
