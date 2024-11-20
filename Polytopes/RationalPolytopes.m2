@@ -3,13 +3,14 @@ newPackage(
     Version => "0.1",
     Date => "",
     Headline => "A package for Ehrhart theory of rational polytopes",
-    Authors => {{ Name => "Victoria Schleis", Email => "victoria.m.schleis@durham.ac.uk", HomePage => "https://victoriaschleis.github.io/"}},
+    Authors => {{ Name => "Victoria Schleis", Email => "victoria.m.schleis@durham.ac.uk", HomePage => "https://victoriaschleis.github.io/"},
+		{ Name => "Alex Milner", Email => "A.J.C.Milner@sms.ed.ac.uk", HomePage => ""}},
     AuxiliaryFiles => false,
     DebuggingMode => false,
     PackageExports => {"Polyhedra"}
     )
 
-export {"fx"}
+export {"fx","hStar"}
 
 -* Code section *-
 fx = x -> x^2;
@@ -104,22 +105,22 @@ EhrhartQP(P)
 
 
 hStar = method()
-hStar(Polyhedron) := P -> (
+hStar(Polyhedron , Ring) := (P, R) -> (
   n:=dim P;
-  dnom := lcm for i in flatten entries vertices P list denominator promote(i,QQ);
-  R:=QQ[t];
+  dnom := lcm for i in flatten entries vertices P list denominator promote(i,QQ);  
   p:=1;
+  t:=R_0;
   for i from 1 to n*dnom+1 do (p=p + #latticePoints(i*P) * t^i);
   f:=0;
-  for i from 0 to n*dnom+1 do f=f+part(i,p * (1-t^dnom)^(n+1));
+  r:=(1-t^dnom)^(n+1);
+  for i from 0 to n*dnom+1 do f=f+part(i,p * r);
   f
   )
 
-exs={transpose matrix "1,0;-1,0;0,1/2;0,-1/2",
-    transpose matrix "0; 1/2",
-    transpose matrix "0,0,0;1,0,0;0,1,0;0,0,1"};
-
-hStar \convexHull\exs
+hStar(Polyhedron) := P -> ( 
+  R:=QQ[t];
+  hStar(P,R)
+  )
 
 
 
@@ -161,6 +162,39 @@ doc ///
 -* Test section *-
 TEST /// -- (0)
 assert(1 == fx 1)
+///
+
+doc ///
+  Key
+    hStar
+  Headline
+    a method
+  Usage
+    hStar P
+  Inputs
+    P : Polyhedron 
+      A convex polyhedron which must be compact
+  Outputs
+    f : Polynomial
+      the hStar polynomial of the input Polytope
+  Description
+    Text
+      Computes the hStar polynomial of a polytope
+    Example
+      hStar convexHull transpose matrix "0; 1/2"
+      hStar convexHull transpose matrix "0,0,0;1,0,0;0,1,0;0,0,1"
+      hStar convexHull transpose matrix "1,0;-1,0;0,1/2;0,-1/2"
+  SeeAlso
+    RationalPolytopes
+///
+
+-* Test section *-
+TEST /// -- (1)
+R=QQ[t]
+assert(1_R == hStar(convexHull transpose matrix "0,0,0;1,0,0;0,1,0;0,0,1"),R)
+assert(t^5+3*t^4+4*t^3+4*t^2+3*t+1 == hStar(convexHull transpose matrix "1,0;-1,0;0,1/2;0,-1/2"),R)
+assert(t+1 == hStar(convexHull transpose matrix "0; 1/2"),R)
+assert(t^5+t^3+t^2+1 == hStar(convexHull transpose matrix "1/4; 1/2"),R)
 ///
 
 end--
