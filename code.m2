@@ -441,6 +441,6 @@ Then use the functions 'latticeOfFlats' and 'chains' to count the number of chai
 -- [Markov bases]
 -- ennumeration of all Markov bases of a toric ideal
 
-
+-- Hi from Vincenzo
 
 
