@@ -156,7 +156,7 @@ help "creating and writing files"
 
 -- value = (Expression; Expression; .. ; Expression; Return value)
 
-n = (	
+n = (
   i = 10;
   j = 100;
   (i+j)^2
@@ -268,7 +268,7 @@ source mat
 
 mat_{1,2} -- columns 1 and 2 (note: first column is 0)
 
-mat^{1} -- row 1 
+mat^{1} -- row 1
 
 ker mat
 
@@ -287,7 +287,7 @@ entries A
 
 A | A^2 -- matrices joined side-by-side
 
-A || A^2 -- stacked matrices 
+A || A^2 -- stacked matrices
 
 
 -- maps between rings
@@ -318,7 +318,7 @@ f = n -> n^2
 
 collatz = n -> (
   if n == 1 then {1}
-  else if n % 2 == 0 then {n} | collatz(n//2) 
+  else if n % 2 == 0 then {n} | collatz(n//2)
   else {n} | collatz(3*n+1)
   )
 
@@ -362,6 +362,10 @@ methods unitCube
 -- Help yourself --
 -------------------
 
+---- no :( I want you to help me
+
+
+
 help "help"
 
 methods unitCube
@@ -383,15 +387,15 @@ code 1
 
 0. Find the help page that explains 'continue'. Copy and modify the first example so that it prints the numbers 1 to 10 and returns a the odd numbers between 1 and 10
 
-1. List the first 100 prime numbers 
+1. List the first 100 prime numbers
 [hint: define a variable: numberOfPrimes = 0, and use a while loop: while numberOfPrimesFound < 100 list (...) ]
- 
-2. Compute the 2024th Fibonacci number 
+
+2. Compute the 2024th Fibonacci number
 [hint: use the matrix: matrix {{1,1},{1,0}} ]
 
 3. write a function startsWithX that takes a string s and outputs true if the first character of s is the letter "x" otherwise it returns false
 [hint: strings can be indexed using underscores]
-[corner case: does your function work with the empty string?] 
+[corner case: does your function work with the empty string?]
 
 4. Use the packages "Graphs" and "Matroids" to count the number of maximal chains of flats of the graphic matroid of the complete graph on 5 vertices
 [hint: use 'needsPackage' to load each package. Use the help to find out how to produce the complete graph and how to make a matroid from a graph.
@@ -428,11 +432,11 @@ Then use the functions 'latticeOfFlats' and 'chains' to count the number of chai
 --------------
 
 -- Maximum Likelihood Degrees --
--- Check some of my old code - how can it be generalised 
+-- Check some of my old code - how can it be generalised
 -- Can we compute the Likelihood correspondence for some small example, e.g., for independence models
 
 -- Polyhedra package:
--- Ehrhart series 
+-- Ehrhart series
 -- Ehrhart delta-vector
 -- equivariant Ehrhart series for Symmetric group actions (Character table is available in BettiCharacter package)
 -- Questions: Can we use Normaliz for these computations?
@@ -440,7 +444,15 @@ Then use the functions 'latticeOfFlats' and 'chains' to count the number of chai
 
 -- [Markov bases]
 -- ennumeration of all Markov bases of a toric ideal
+<<<<<<< HEAD
+=======
+
+-- Hi from Ben.
 
 -- Hi from Vincenzo
 
 
+-- hi from ollie:
+-- kill: crtl-x crtl-c
+-- save: crtl-x crtl-s
+>>>>>>> 2eef146fc7ba8859e961b54145ecb243270392a2
