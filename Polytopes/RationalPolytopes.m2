@@ -9,7 +9,7 @@ newPackage(
     PackageExports => {"Polyhedra"}
     )
 
-export {"fx"}
+export {"fx","Ehrhart","EhrhartQP"}
 
 -* Code section *-
 fx = x -> x^2;
@@ -136,26 +136,49 @@ doc ///
 
 doc ///
   Key
-    fx
+    Ehrhart
   Headline
     a function
   Usage
-    n = fx a
+    p = Ehrhart(P,i)
   Inputs
-    a : ZZ
-      a number to be squared
+    P : Polyhedron
+    i : ZZ
+      (P,i) is a polyhedron and integer to calculate the ith polynomial piece contributing to the Ehrhart quasipolynomial for P
   Outputs
-    n : ZZ
-      the square of a
+    p : QQ[x]
+      the ith polynomial contributing to the Ehrhart quasipolynomial of P
   Description
     Text
-      it squares things
+      it calculates the ith polynomial piece contributing to the Ehrhart quasipolynomial of a polyhedron P 
     Example
-      fx 4
-      fx 2
+      Ehrhart(convexHull transpose matrix "0,0;1/2,0;0,1/2",0)
+      Ehrhart(convexHull transpose matrix "0,0;1/2,0;0,1/2",1)
   SeeAlso
     RationalPolytopes
 ///
+
+doc ///
+  Key
+    EhrhartQP
+  Headline
+    a function
+  Usage
+    L = EhrhartQP(P)
+  Inputs
+    P : Polyhedron
+      the polyhedron for which we calculate the Ehrhart quasipolynomial
+  Outputs
+    L : List
+      a list of polynomial pieces contributing to the Ehrhart quasipolynomial of P
+  Description
+    Text
+      it calculates the Ehrhart quasipolynomial of polyhedron P
+    Example
+      EhrhartQP(convexHull transpose matrix "0,0;1/2,0;0,1/2")
+///  
+    
+  
 
 
 -* Test section *-
