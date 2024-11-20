@@ -113,7 +113,7 @@ hStar(Polyhedron , Ring) := (P, R) -> (
   )
 
 hStar(Polyhedron) := P -> ( 
-  R:=QQ[t];
+  R:=QQ[symbol "t"];
   hStar(P,R)
   )
 
