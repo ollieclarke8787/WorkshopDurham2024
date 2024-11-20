@@ -3,7 +3,7 @@ newPackage(
     Version => "0.1",
     Date => "",
     Headline => "A package for Ehrhart theory of rational polytopes",
-    Authors => {{ Name => "", Email => "", HomePage => ""}},
+    Authors => {{ Name => "Victoria Schleis", Email => "victoria.m.schleis@durham.ac.uk", HomePage => "https://victoriaschleis.github.io/"}},
     AuxiliaryFiles => false,
     DebuggingMode => false,
     PackageExports => {"Polyhedra"}
@@ -19,8 +19,8 @@ IsLatticePolytope(Polyhedron) := P -> (
     M := vertices P;
     test := true;
     for a in flatten entries M do (
-	if denominator(a) != 1 then ( 
-	    test = false; 
+	if denominator(a) != 1 then (
+	    test = false;
 	    );
 	);
     test
@@ -78,11 +78,11 @@ Ehrhart (Polyhedron,ZZ):=(P, i) -> (
     k:=lcm for i in flatten entries vertices P list denominator promote(i,QQ);
     R:=QQ[getSymbol "x"];
     x:=R_"x";
-    S:=for j from 0 to n list i+j*k; 
+    S:=for j from 0 to n list i+j*k;
     if n==0 and (not isEmpty P) then return 1+0*x;
     if isEmpty P then return 0+0*x;
     v:=matrix apply(S,h->(
-	    if h == 0 then {0} 
+	    if h == 0 then {0}
 	    else {-1+#latticePoints(h*P)}
 	    )
 	);
@@ -97,7 +97,7 @@ EhrhartQP=method()
 EhrhartQP Polyhedron:=P->(
     k:=lcm for i in flatten entries vertices P list denominator promote(i,QQ);
     for i from 0 to k-1 list Ehrhart(P,i))
-    
+
 P=convexHull transpose matrix "1,0;-1,0;0,1/2;0,-1/2"
 EhrhartQP(P)
 
@@ -106,7 +106,7 @@ EhrhartQP(P)
 hStar = method()
 hStar(Polyhedron) := P -> (
   n:=dim P;
-  dnom := lcm for i in flatten entries vertices P list denominator promote(i,QQ);  
+  dnom := lcm for i in flatten entries vertices P list denominator promote(i,QQ);
   R:=QQ[t];
   p:=1;
   for i from 1 to n*dnom+1 do (p=p + #latticePoints(i*P) * t^i);
@@ -115,7 +115,7 @@ hStar(Polyhedron) := P -> (
   f
   )
 
-exs={transpose matrix "1,0;-1,0;0,1/2;0,-1/2", 
+exs={transpose matrix "1,0;-1,0;0,1/2;0,-1/2",
     transpose matrix "0; 1/2",
     transpose matrix "0,0,0;1,0,0;0,1,0;0,0,1"};
 
