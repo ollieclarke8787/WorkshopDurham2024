@@ -444,3 +444,6 @@ Then use the functions 'latticeOfFlats' and 'chains' to count the number of chai
 
 
 
+-- hi from ollie:
+-- kill: crtl-x crtl-c
+-- save: crtl-x crtl-s
