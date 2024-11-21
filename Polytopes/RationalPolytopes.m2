@@ -5,9 +5,9 @@ newPackage(
     Headline => "A package for Ehrhart theory of rational polytopes",
     Authors => {
 	{Name => "Oliver Clarke", Email => "oliver.clarke@ed.ac.uk", HomePage => "https://www.oliverclarkemath.com/"},
-	{Name => "Victoria Schleis", Email => "victoria.m.schleis@durham.ac.uk", HomePage => "https://victoriaschleis.github.io/"},
 	{Name => "Alex Milner", Email => "A.J.C.Milner@sms.ed.ac.uk", HomePage => ""}},
-    AuxiliaryFiles => false,
+	{Name => "Victoria Schleis", Email => "victoria.m.schleis@durham.ac.uk", HomePage => "https://victoriaschleis.github.io/"},
+   AuxiliaryFiles => false,
     DebuggingMode => false,
     PackageExports => {"Polyhedra"}
     )
@@ -110,7 +110,7 @@ EhrhartQP Polyhedron:=P->(
 hStar = method()
 hStar(Polyhedron , Ring) := (P, R) -> (
   n:=dim P;
-  dnom := lcm for i in flatten entries vertices P list denominator promote(i,QQ);  
+  dnom := lcm for i in flatten entries vertices P list denominator promote(i,QQ);
   p:=1;
   t:=R_0;
   for i from 1 to n*dnom+1 do (p=p + #latticePoints(i*P) * t^i);
@@ -120,7 +120,7 @@ hStar(Polyhedron , Ring) := (P, R) -> (
   f
   )
 
-hStar(Polyhedron) := P -> ( 
+hStar(Polyhedron) := P -> (
   R:=QQ[Variables => 1];
   hStar(P,R)
   )
@@ -153,7 +153,7 @@ doc ///
       the ith polynomial contributing to the Ehrhart quasipolynomial of P
   Description
     Text
-      it calculates the ith polynomial piece contributing to the Ehrhart quasipolynomial of a polyhedron P 
+      it calculates the ith polynomial piece contributing to the Ehrhart quasipolynomial of a polyhedron P
     Example
       Ehrhart(convexHull transpose matrix "0,0;1/2,0;0,1/2",0)
       Ehrhart(convexHull transpose matrix "0,0;1/2,0;0,1/2",1)
@@ -181,8 +181,8 @@ doc ///
       it calculates the Ehrhart quasipolynomial of polyhedron P
     Example
       EhrhartQP(convexHull transpose matrix "0,0;1/2,0;0,1/2")
-///  
-    
+///
+
 
 doc ///
   Key
@@ -220,9 +220,9 @@ doc ///
     hStar P
     hStar(P,R)
   Inputs
-    P : Polyhedron 
+    P : Polyhedron
       A convex polyhedron which must be compact
-    R : Ring 
+    R : Ring
       A ring in one variable
   Outputs
     f : RingElement
@@ -237,7 +237,7 @@ doc ///
   SeeAlso
     RationalPolytopes
 ///
-  
+
 
 
 -* Test section *-
