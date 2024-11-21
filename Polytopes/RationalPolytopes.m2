@@ -19,7 +19,7 @@ export {
     "Ehrhart",
     "EhrhartQP",
     "isPeriod",
-    "cleanCoefficients"
+    "cleanCoefficients",
     "quasiPolynomial",
     "period",
     }
@@ -47,11 +47,11 @@ isPeriod(Matrix,ZZ) := (M,q) -> (
 
 cleaning = method()
 cleaning(Matrix) := M-> (
-    q:=1;
+    q:=0;
     for p from 1 to numRows M-1 do(
 	if isPeriod(M,p) then q=p;
     );
-    if q!=1 then (
+    if q!=0 then (
 	M=submatrix'(M,toList(q .. numRows M-1),);
 	);
     M
@@ -207,11 +207,11 @@ isPeriod(Matrix,ZZ) := (M,q) -> (
 
 cleanCoefficients=method()
 cleanCoefficients(Matrix) := M -> (
-    q:=1;
+    q:=0;
     for p from 1 to numRows M-1 do(
 	if isPeriod(M,p) then q=p;
     );
-    if q!=1 then (
+    if q!=0 then (
 	M=submatrix'(M,toList(q .. numRows M-1),);
 	);
     M
@@ -415,7 +415,7 @@ EhrhartQP(P)
 
 -- Test of the constructor of the Type QuasiPolynomial
 
-M=matrix({{1,2,3,4},{0,2,0,4}})
+M=matrix({{1,2,3},{1,2,3}})
 QP=quasiPolynomial(M)
 QP#period
 
