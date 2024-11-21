@@ -7,7 +7,7 @@ newPackage(
 	{Name => "Oliver Clarke", Email => "oliver.clarke@ed.ac.uk", HomePage => "https://www.oliverclarkemath.com/"},
 	{Name => "Alex Milner", Email => "A.J.C.Milner@sms.ed.ac.uk", HomePage => ""},
 	{Name => "Victoria Schleis", Email => "victoria.m.schleis@durham.ac.uk", HomePage => "https://victoriaschleis.github.io/"}},
-    AuxiliaryFiles => false,
+   AuxiliaryFiles => false,
     DebuggingMode => false,
     PackageExports => {"Polyhedra"}
     )
@@ -30,32 +30,37 @@ export {
 -- coefficient list
 -- leading coefficient
 
+cleaning = method()
+cleaning(Matrix) := M->M; -- Waiting for the full cleaning function.
+
 QuasiPolynomial = new Type of HashTable
-
 quasiPolynomial = method()
-quasiPolynomial(Matrix) := M -> new QuasiPolynomial from {
-    period => 0, -- computation of the period from the matrix
-    coefficients => M,
-    cache => new CacheTable,
-    }
+quasiPolynomial(Matrix) := M -> (
+    Mclean:=cleaning(M);
+    new QuasiPolynomial from {
+	period => numRows(Mclean), -- computation of the period from the matrix
+	coefficients => Mclean,
+	cache => new CacheTable,
+	}
+    )
 
--*
 quasiPolynomial(List) := L -> (
     if not isMember(false, for l in L list instance(l,List)) then (
-	quasiPolynomial(Matrix(L))
+	D:=max for p in L list length p;
+	L1:=for p in L list ((for i in 0..D-length p -1 list 0)|p);
+	quasiPolynomial(matrix(L1))
 	)
     else if not isMember(false, for l in L list instance(class l,PolynomialRing)) then(
 	if not isMember(false, for l in L list numgens class l==1) then (
-	    D:=max for p in L list (degree p)#0;
-	    lM:=for p in L list coefficients(p, Monomials=>for d in 0..D list ((generators class p)#0)^d );
-	    M:=fold((a,b) -> a|b, lM);
-	    print M;
+	    D1:=max for p in L list (degree p)#0;
+	    lM:=for p in L list sub( (coefficients(p, Monomials=>for d in 0..D1 list ((generators class p)#0)^(D1-d)))#1, QQ);
+	    M:=transpose fold((a,b) -> a|b, lM);
 	    quasiPolynomial(M)
 	    )
 	)
     )
 
-*-
+
 
 
 
@@ -317,6 +322,15 @@ M=matrix{{1,2},{3,4}}
 QP=quasiPolynomial(M)
 QP#"period"
 
+M=matrix({{1,2,3,4},{0,2,0,4}})
+quasiPolynomial(M)
+
+-- Test of the constructor of the Type QuasiPolynomial
+
 R=QQ[x]
-L={x^2+1,2*x}
+R1=QQ[t]
+L={x^2+3,2*t}
+quasiPolynomial(L)
+
+L={{1,0,3},{2,0}}
 quasiPolynomial(L)
