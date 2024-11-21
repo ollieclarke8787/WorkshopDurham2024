@@ -3,15 +3,21 @@ newPackage(
     Version => "0.1",
     Date => "",
     Headline => "A package for Ehrhart theory of rational polytopes",
-    Authors => {{ Name => "Victoria Schleis", Email => "victoria.m.schleis@durham.ac.uk", HomePage => "https://victoriaschleis.github.io/"},
-		{ Name => "Alex Milner", Email => "A.J.C.Milner@sms.ed.ac.uk", HomePage => ""}},
+    Authors => {
+	{Name => "Oliver Clarke", Email => "oliver.clarke@ed.ac.uk", HomePage => "https://www.oliverclarkemath.com/"},
+	{Name => "Victoria Schleis", Email => "victoria.m.schleis@durham.ac.uk", HomePage => "https://victoriaschleis.github.io/"},
+	{Name => "Alex Milner", Email => "A.J.C.Milner@sms.ed.ac.uk", HomePage => ""}},
     AuxiliaryFiles => false,
     DebuggingMode => false,
     PackageExports => {"Polyhedra"}
     )
 
-
-export {"fx","hStar","PolynomialInterpolation","Ehrhart","EhrhartQP"}
+export {
+    "hStar",
+    "PolynomialInterpolation",
+    "Ehrhart",
+    "EhrhartQP"
+    }
 
 
 -* Code section *-
@@ -130,7 +136,6 @@ doc ///
   Headline
     A package for Ehrhart theory of rational polytopes
 ///
- fx := x -> x^2
 
 doc ///
   Key
@@ -206,8 +211,6 @@ doc ///
 ///
 
 
-
-
 doc ///
   Key
     hStar
@@ -240,10 +243,10 @@ doc ///
 -* Test section *-
 TEST /// -- (1)
 R=QQ[t]
-assert(1_R == hStar(convexHull transpose matrix "0,0,0;1,0,0;0,1,0;0,0,1"),R)
-assert(t^5+3*t^4+4*t^3+4*t^2+3*t+1 == hStar(convexHull transpose matrix "1,0;-1,0;0,1/2;0,-1/2"),R)
-assert(t+1 == hStar(convexHull transpose matrix "0; 1/2"),R)
-assert(t^5+t^3+t^2+1 == hStar(convexHull transpose matrix "1/4; 1/2"),R)
+assert(1_R == hStar(convexHull transpose matrix "0,0,0;1,0,0;0,1,0;0,0,1",R))
+assert(t^5+3*t^4+4*t^3+4*t^2+3*t+1 == hStar(convexHull transpose matrix "1,0;-1,0;0,1/2;0,-1/2",R))
+assert(t+1 == hStar(convexHull transpose matrix "0; 1/2",R))
+assert(t^5+t^3+t^2+1 == hStar(convexHull transpose matrix "1/4; 1/2",R))
 ///
 
 end--
@@ -251,16 +254,21 @@ end--
 -* Development section *-
 restart
 
-check "RationalPolytopes"
-installPackage "RationalPolytopes"
-viewHelp "RationalPolytopes"
-
 uninstallPackage "RationalPolytopes"
 restart
+installPackage "RationalPolytopes"
+
+viewHelp "RationalPolytopes"
 debug needsPackage "RationalPolytopes"
+
+check "RationalPolytopes"
+
+
 P=convexHull transpose matrix "0;1/2"
 EhrhartQP(P)
 
 P=convexHull transpose matrix "1,0;-1,0;0,1/2;0,-1/2"
-P = convexHull transpose matrix "0;1/2"
+EhrhartQP(P)
+
+P=convexHull transpose matrix "-1/2; 1/2"
 EhrhartQP(P)
