@@ -16,7 +16,9 @@ export {
     "hStar",
     "PolynomialInterpolation",
     "Ehrhart",
-    "EhrhartQP"
+    "EhrhartQP",
+    "quasiPolynomial",
+    "period"
     }
 
 -* QuasiPolynomial Type *-
@@ -28,8 +30,28 @@ export {
 -- coefficient list
 -- leading coefficient
 
-QuasiPolynomial = newType of HashTable
-F = new QuasiPolynomial from {"l"}
+QuasiPolynomial = new Type of HashTable
+
+quasiPolynomial = method()
+quasiPolynomial(Matrix) := M -> new QuasiPolynomial from {
+    period => 0, -- computation of the period from the matrix
+    coefficients => M,
+    cache => new CacheTable,
+    }
+
+quasiPolynomial(List) := L -> (
+    if not isMember(false, for l in L list instance(l,List))) then (
+	quasiPolynomial(Matrix(L))
+	)
+    else if not isMember(false, for l in L list instance(class l,PolynomialRing)) then(
+	if not isMember(false, for l in L list numgens class l==1) then (
+	    D=max for p in L list (degree p)#0;
+	    M=matrix(for p in L list coefficients(p, Monomials=>for d in 0..D list ((generators class p)#0)^d );
+	    quasiPolynomial(M)
+	    )
+	)
+    )
+
 
 
 
@@ -286,3 +308,7 @@ EhrhartQP(P)
 
 P=convexHull transpose matrix "-1/2; 1/2"
 EhrhartQP(P)
+
+M=matrix{{1,2},{3,4}}
+QP=quasiPolynomial(M)
+QP#"period"
