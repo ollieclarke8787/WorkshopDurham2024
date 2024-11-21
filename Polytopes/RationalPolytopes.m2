@@ -18,7 +18,7 @@ export {
     "Ehrhart",
     "EhrhartQP",
     "quasiPolynomial",
-    "period"
+    "period",
     }
 
 -* QuasiPolynomial Type *-
@@ -317,16 +317,13 @@ EhrhartQP(P)
 P=convexHull transpose matrix "-1/2; 1/2"
 EhrhartQP(P)
 
-M=matrix{{1,2},{3,4}}
 
-QP=quasiPolynomial(M)
-QP#"period"
-
-
-M=matrix({{1,2,3,4},{0,2,0,4}})
-quasiPolynomial(M)
 
 -- Test of the constructor of the Type QuasiPolynomial
+
+M=matrix({{1,2,3,4},{0,2,0,4}})
+QP=quasiPolynomial(M)
+QP#period
 
 R=QQ[x]
 R1=QQ[t]
