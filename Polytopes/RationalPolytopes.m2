@@ -19,6 +19,20 @@ export {
     "EhrhartQP"
     }
 
+-* QuasiPolynomial Type *-
+
+-- List of polynomial
+-- Period
+-- Ring of Polynomial
+-- degree
+-- coefficient list
+-- leading coefficient
+
+QuasiPolynomial = newType of HashTable
+F = new QuasiPolynomial from {"l"}
+
+
+
 
 -* Code section *-
 
