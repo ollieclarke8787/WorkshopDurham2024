@@ -5,8 +5,8 @@ newPackage(
     Headline => "A package for Ehrhart theory of rational polytopes",
     Authors => {
 	{Name => "Oliver Clarke", Email => "oliver.clarke@ed.ac.uk", HomePage => "https://www.oliverclarkemath.com/"},
-	{Name => "Alex Milner", Email => "A.J.C.Milner@sms.ed.ac.uk", HomePage => ""}},
-	{Name => "Victoria Schleis", Email => "victoria.m.schleis@durham.ac.uk", HomePage => "https://victoriaschleis.github.io/"},
+	{Name => "Alex Milner", Email => "A.J.C.Milner@sms.ed.ac.uk", HomePage => ""},
+	{Name => "Victoria Schleis", Email => "victoria.m.schleis@durham.ac.uk", HomePage => "https://victoriaschleis.github.io/"}},
    AuxiliaryFiles => false,
     DebuggingMode => false,
     PackageExports => {"Polyhedra"}
