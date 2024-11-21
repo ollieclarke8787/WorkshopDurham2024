@@ -33,9 +33,29 @@ export {
 -- coefficient list
 -- leading coefficient
 
+isPeriod=method()
+isPeriod(Matrix,ZZ) := (M,q) -> (
+    result:=true;
+    if numRows M%q!=0 then result=false;
+    if numRows M%q==0 then (
+	for j from 0 to numRows M//q-1 do(
+	    if M^(toList(0 .. q-1))!=M^(toList((j*q .. (j+1)*q-1))) then result=false;
+	    );
+	);
+    result
+    )
 
 cleaning = method()
-cleaning(Matrix) := M->M; -- Waiting for the full cleaning function.
+cleaning(Matrix) := M-> (
+    q:=1;
+    for p from 1 to numRows M-1 do(
+	if isPeriod(M,p) then q=p;
+    );
+    if q!=1 then (
+	M=submatrix'(M,toList(q .. numRows M-1),);
+	);
+    M
+    )
 
 QuasiPolynomial = new Type of HashTable
 quasiPolynomial = method()
