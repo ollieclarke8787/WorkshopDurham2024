@@ -19,6 +19,7 @@ export {
     "EhrhartQP",
     "quasiPolynomial",
     "period",
+    "displayQP",
     }
 
 -* QuasiPolynomial Type *-
@@ -31,7 +32,7 @@ export {
 -- leading coefficient
 
 cleaning = method()
-cleaning(Matrix) := M->M; -- Waiting for the full cleaning function.
+cleaning(Matrix) := M -> M; -- Waiting for the full cleaning function.
 
 QuasiPolynomial = new Type of HashTable
 quasiPolynomial = method()
@@ -43,6 +44,10 @@ quasiPolynomial(Matrix) := M -> (
 	cache => new CacheTable,
 	}
     )
+
+net QuasiPolynomial := QP -> (
+    "QuasiPolynomial of degree " | net(numColumns(QP#coefficients)) | " and of period " | net(QP#period)
+)
 
 quasiPolynomial(List) := L -> (
     if not isMember(false, for l in L list instance(l,List)) then (
@@ -58,6 +63,14 @@ quasiPolynomial(List) := L -> (
 	    quasiPolynomial(M)
 	    )
 	)
+    )
+
+displayQP = method()
+displayQP(QuasiPolynomial) := QP -> (
+    R:=QQ[getSymbol "t"];
+    t1:=(gens R)#0;
+    Mono :=  for d in 0..(numColumns QP#coefficients)-1 list {" + ", (QP#coefficients)_(d),t1^(numColumns (QP#coefficients)-d-1)};
+    fold((a,b) -> net a | net b , flatten Mono)
     )
 
 
@@ -324,6 +337,8 @@ EhrhartQP(P)
 M=matrix({{1,2,3,4},{0,2,0,4}})
 QP=quasiPolynomial(M)
 QP#period
+print QP
+displayQP QP
 
 R=QQ[x]
 R1=QQ[t]
