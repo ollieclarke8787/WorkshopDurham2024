@@ -6,7 +6,8 @@ newPackage(
     Authors => {
 	{Name => "Oliver Clarke", Email => "oliver.clarke@ed.ac.uk", HomePage => "https://www.oliverclarkemath.com/"},
 	{Name => "Alex Milner", Email => "A.J.C.Milner@sms.ed.ac.uk", HomePage => ""},
-	{Name => "Victoria Schleis", Email => "victoria.m.schleis@durham.ac.uk", HomePage => "https://victoriaschleis.github.io/"}},
+	{Name => "Victoria Schleis", Email => "victoria.m.schleis@durham.ac.uk", HomePage => "https://victoriaschleis.github.io/"},
+	{Name => "Vincenzo Reda", Email => "redav@tcd.ie", HomePage => ""}},
    AuxiliaryFiles => false,
     DebuggingMode => false,
     PackageExports => {"Polyhedra"}
@@ -16,7 +17,9 @@ export {
     "hStar",
     "PolynomialInterpolation",
     "Ehrhart",
-    "EhrhartQP"
+    "EhrhartQP",
+    "isPeriod",
+    "cleanCoefficients"
     }
 
 -* QuasiPolynomial Type *-
@@ -28,8 +31,8 @@ export {
 -- coefficient list
 -- leading coefficient
 
-QuasiPolynomial = newType of HashTable
-F = new QuasiPolynomial from {"l"}
+-- QuasiPolynomial = newType of HashTable
+-- F = new QuasiPolynomial from {"l"}
 
 
 
@@ -139,7 +142,29 @@ hStar(Polyhedron) := P -> (
   hStar(P,R)
   )
 
+isPeriod=method()
+isPeriod(Matrix,ZZ) := (M,q) -> (
+    result:=true;
+    if numRows M%q!=0 then result=false;
+    if numRows M%q==0 then (
+	for j from 0 to numRows M//q-1 do(
+	    if M^(toList(0 .. q-1))!=M^(toList((j*q .. (j+1)*q-1))) then result=false;
+	    );
+	);
+    result
+    )
 
+cleanCoefficients=method()
+cleanCoefficients(Matrix) := M -> (
+    q:=1;
+    for p from 1 to numRows M-1 do(
+	if isPeriod(M,p) then q=p;
+    );
+    if q!=1 then (
+	M=submatrix'(M,toList(q .. numRows M-1),);
+	);
+    M
+    )
 
 -* Documentation section *-
 beginDocumentation()
@@ -252,6 +277,53 @@ doc ///
     RationalPolytopes
 ///
 
+doc ///
+  Key
+    isPeriod
+  Headline
+    a function
+  Usage
+    result = isPeriod(M,q)
+  Inputs
+    M : Matrix
+    q : ZZ
+  Outputs
+    result : Boolean
+      result is true if q is the period and false otherwise
+  Description
+    Text
+      It returns true if q is the period and false otherwise
+    Example
+      isPeriod(matrix "1,1;2,2;1,1;2,2",2)
+      isPeriod(matrix "1,1;2,2;1,1;3,2",2)
+      isPeriod(matrix "1,2,5;2,4,3;1,2,5;3,4,5;1,2,5;2,4,3;1,2,5;3,4,5",3)
+  SeeAlso
+    RationalPolytopes
+///
+
+doc ///
+  Key
+    cleanCoefficients
+  Headline
+    a function
+  Usage
+    T = cleanCoefficients(M)
+  Inputs
+    M : Matrix
+  Outputs
+    T : Matrix
+      T is obtained from M eliminating periodicity in M
+  Description
+    Text
+      it produces a matrix from M which is not periodic
+    Example
+      cleanCoefficients(matrix "1,1;2,2;1,1;2,2")
+      cleanCoefficients(matrix "1,1;2,2;1,1;2,2")
+      cleanCoefficients(matrix "1,2,5;2,4,3;1,2,5;3,4,5;1,2,5;2,4,3;1,2,5;3,4,5")
+  SeeAlso
+    RationalPolytopes
+///
+  
 
 
 -* Test section *-
@@ -270,6 +342,7 @@ restart
 
 uninstallPackage "RationalPolytopes"
 restart
+
 installPackage "RationalPolytopes"
 
 viewHelp "RationalPolytopes"
