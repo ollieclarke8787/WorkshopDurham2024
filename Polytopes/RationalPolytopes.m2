@@ -20,6 +20,8 @@ export {
     "EhrhartQP",
     "isPeriod",
     "cleanCoefficients"
+    "quasiPolynomial",
+    "period",
     }
 
 -* QuasiPolynomial Type *-
@@ -31,8 +33,37 @@ export {
 -- coefficient list
 -- leading coefficient
 
--- QuasiPolynomial = newType of HashTable
--- F = new QuasiPolynomial from {"l"}
+
+cleaning = method()
+cleaning(Matrix) := M->M; -- Waiting for the full cleaning function.
+
+QuasiPolynomial = new Type of HashTable
+quasiPolynomial = method()
+quasiPolynomial(Matrix) := M -> (
+    Mclean:=cleaning(M);
+    new QuasiPolynomial from {
+	period => numRows(Mclean), -- computation of the period from the matrix
+	coefficients => Mclean,
+	cache => new CacheTable,
+	}
+    )
+
+quasiPolynomial(List) := L -> (
+    if not isMember(false, for l in L list instance(l,List)) then (
+	D:=max for p in L list length p;
+	L1:=for p in L list ((for i in 0..D-length p -1 list 0)|p);
+	quasiPolynomial(matrix(L1))
+	)
+    else if not isMember(false, for l in L list instance(class l,PolynomialRing)) then(
+	if not isMember(false, for l in L list numgens class l==1) then (
+	    D1:=max for p in L list (degree p)#0;
+	    lM:=for p in L list sub( (coefficients(p, Monomials=>for d in 0..D1 list ((generators class p)#0)^(D1-d)))#1, QQ);
+	    M:=transpose fold((a,b) -> a|b, lM);
+	    quasiPolynomial(M)
+	    )
+	)
+    )
+
 
 
 
@@ -358,4 +389,138 @@ P=convexHull transpose matrix "1,0;-1,0;0,1/2;0,-1/2"
 EhrhartQP(P)
 
 P=convexHull transpose matrix "-1/2; 1/2"
+EhrhartQP(P)
+
+
+
+-- Test of the constructor of the Type QuasiPolynomial
+
+M=matrix({{1,2,3,4},{0,2,0,4}})
+QP=quasiPolynomial(M)
+QP#period
+
+R=QQ[x]
+R1=QQ[t]
+L={x^2+3,2*t}
+quasiPolynomial(L)
+
+L={{1,0,3},{2,0}}
+quasiPolynomial(L)
+
+
+--- Benchmarking examples -- functions with timings :)
+
+
+
+IsLatticePolytope=method()
+IsLatticePolytope(Polyhedron) := P -> (
+    M := vertices P;
+    test := true;
+    for a in flatten entries M do (
+	if denominator(a) != 1 then (
+	    test = false;
+	    );
+	);
+    test
+    );
+
+DenominatorOfPolytope=method()
+DenominatorOfPolytope(Polyhedron) := P -> (
+    lcm for x in flatten entries vertices P list denominator(x)
+    )
+
+EhrhartPolynomial=method()
+EhrhartPolynomial(Polyhedron) := P -> (
+    if IsLatticePolytope P then (
+	ehrhart P
+	)
+    else (
+	print DenominatorOfPolytope(P);
+	print "Work in progress...";
+	);
+    )
+
+TabularOfValues=method()
+TabularOfValues(Polyhedron) := P -> (
+    denom := DenominatorOfPolytope(P);
+    T := { {0,1} };
+    for d in 1 .. denom*(dim P + 1) do (
+	T = append(T, {d, length latticePoints (d*P)} );
+	);
+    SortedT := {};
+    for i in 0..denom-1 do(
+	SortedT = append(SortedT, for j in 0..dim P list T#(j*denom + i) );
+	);
+    print T;
+    print SortedT;
+)
+
+PolynomialInterpolation=method()
+PolynomialInterpolation(List,List,PolynomialRing) := (X,Y,R) -> (
+    Xpower := mutableMatrix(coefficientRing R, length X, length X);
+    for i in 0..length X-1 do (
+	for j in 0..length X-1 do (
+	    Xpower_(i,j) = (X#i)^j;
+	    );
+	);
+    S:=solve(matrix(Xpower),transpose matrix(coefficientRing R, {Y}));
+    sum for i in 0..length X - 1 list S_(i,0)*((generators R)#0)^i
+    )
+
+
+Ehrhart=method(TypicalValue=>RingElement)
+Ehrhart (Polyhedron,ZZ):=(P, i) -> (
+    n:=dim P;
+    k:=lcm for j in flatten entries vertices P list denominator promote(j,QQ);
+    R:=QQ[getSymbol "x"];
+    x:=R_"x";
+    S:=for j from 0 to n list i+j*k;
+    if n==0 and (not isEmpty P) then return 1+0*x;
+    if isEmpty P then return 0+0*x;
+    v:=matrix apply(S,h->(
+	    if h == 0 then {elapsedTime 0}
+	    else {
+					elapsedTime print h;
+					elapsedTime -1+#latticePoints(h*P)
+					}
+	    )
+	);
+    v=promote(v,QQ);
+    M:=promote(matrix apply(S,a->reverse apply(n+1,j->( a^j ))),QQ);
+    M=flatten entries((inverse M)*v);
+
+
+    1+sum apply(n+1,a->M_(a)*x^(n-a))
+    )
+
+
+EhrhartQP=method()
+EhrhartQP Polyhedron:=P->(
+    k:=lcm for i in flatten entries vertices P list denominator promote(i,QQ);
+    for i from 0 to k-1 list Ehrhart(P,i))
+
+
+hStar = method()
+hStar(Polyhedron , Ring) := (P, R) -> (
+  n:=dim P;
+  dnom := lcm for i in flatten entries vertices P list denominator promote(i,QQ);
+  p:=1;
+  t:=R_0;
+  for i from 1 to n*dnom+1 do (,
+			elapsedTime p =p + #latticePoints(i*P) * t^i),
+  f:=0;
+  r:=(1-t^dnom)^(n+1);
+  for i from 0 to n*dnom+1 do f=f+part(i,p * r);
+  f
+  )
+
+hStar(Polyhedron) := P -> (
+  R:=QQ[Variables => 1];
+  hStar(P,R)
+  )
+
+
+
+
+P = convexHull transpose matrix "1,0;-1,0;0,1/20;-1,11/20"
 EhrhartQP(P)
