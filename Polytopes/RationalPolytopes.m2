@@ -40,13 +40,15 @@ quasiPolynomial(Matrix) := M -> new QuasiPolynomial from {
     }
 
 quasiPolynomial(List) := L -> (
-    if not isMember(false, for l in L list instance(l,List))) then (
+    if not isMember(false, for l in L list instance(l,List)) then (
 	quasiPolynomial(Matrix(L))
 	)
     else if not isMember(false, for l in L list instance(class l,PolynomialRing)) then(
 	if not isMember(false, for l in L list numgens class l==1) then (
-	    D=max for p in L list (degree p)#0;
-	    M=matrix(for p in L list coefficients(p, Monomials=>for d in 0..D list ((generators class p)#0)^d );
+	    D:=max for p in L list (degree p)#0;
+	    lM:=for p in L list coefficients(p, Monomials=>for d in 0..D list ((generators class p)#0)^d );
+	    M:=fold((a,b) -> a|b, lM);
+	    print M;
 	    quasiPolynomial(M)
 	    )
 	)
@@ -310,5 +312,10 @@ P=convexHull transpose matrix "-1/2; 1/2"
 EhrhartQP(P)
 
 M=matrix{{1,2},{3,4}}
+
 QP=quasiPolynomial(M)
 QP#"period"
+
+R=QQ[x]
+L={x^2+1,2*x}
+quasiPolynomial(L)
