@@ -7,7 +7,7 @@ newPackage(
 	{Name => "Oliver Clarke", Email => "oliver.clarke@ed.ac.uk", HomePage => "https://www.oliverclarkemath.com/"},
 	{Name => "Alex Milner", Email => "A.J.C.Milner@sms.ed.ac.uk", HomePage => ""},
 	{Name => "Victoria Schleis", Email => "victoria.m.schleis@durham.ac.uk", HomePage => "https://victoriaschleis.github.io/"}},
-   AuxiliaryFiles => false,
+    AuxiliaryFiles => false,
     DebuggingMode => false,
     PackageExports => {"Polyhedra"}
     )
@@ -39,6 +39,7 @@ quasiPolynomial(Matrix) := M -> new QuasiPolynomial from {
     cache => new CacheTable,
     }
 
+-*
 quasiPolynomial(List) := L -> (
     if not isMember(false, for l in L list instance(l,List)) then (
 	quasiPolynomial(Matrix(L))
@@ -54,7 +55,7 @@ quasiPolynomial(List) := L -> (
 	)
     )
 
-
+*-
 
 
 
