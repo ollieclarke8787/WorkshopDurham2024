@@ -23,6 +23,8 @@ export {
     "quasiPolynomial",
     "period",
     "displayQP",
+    "periodQP",
+    "coefficientMonomial"
     }
 
 -* QuasiPolynomial Type *-
@@ -70,7 +72,7 @@ quasiPolynomial(Matrix) := M -> (
     )
 
 net QuasiPolynomial := QP -> (
-    "QuasiPolynomial of degree " | net(numColumns(QP#coefficients)) | " and of period " | net(QP#period)
+    "QuasiPolynomial of degree " | net(numColumns(QP#coefficients)-1) | " and of period " | net(QP#period)
 )
 
 quasiPolynomial(List) := L -> (
@@ -97,8 +99,21 @@ displayQP(QuasiPolynomial) := QP -> (
     fold((a,b) -> net a | net b , flatten Mono)
     )
 
+degree(QuasiPolynomial) := QP -> (
+    numColumns(QP#coefficients)-1
+    )
 
+periodQP =method()
+periodQP(QuasiPolynomial) := QP -> (
+    numRows(QP#coefficients)
+    )
 
+coefficientMonomial = method()
+coefficientMonomial(QuasiPolynomial,ZZ) := (QP,i) -> (
+    if i < degree(QP)+1 then M:=QP#coefficients_{degree(QP)-i};
+    if i > degree(QP) then M=0;
+    M
+    )
 
 
 -* Code section *-
@@ -206,7 +221,7 @@ hStar(Polyhedron) := P -> (
   hStar(P,R)
   )
 
-isPeriod=method()
+
 isPeriod(Matrix,ZZ) := (M,q) -> (
     result:=true;
     if numRows M%q!=0 then result=false;
@@ -387,6 +402,80 @@ doc ///
   SeeAlso
     RationalPolytopes
 ///
+
+doc ///
+  Key
+   "degree(QuasiPolynomial)"
+  Headline
+    a function
+  Usage
+    n = degree(QP)
+  Inputs
+    QP : QuasiPolynomial
+      A quasipolynomial of which we want to know the degree
+  Outputs
+    n : ZZ
+      The degree of QP
+  Description
+    Text
+      Computes the degree of a quasipolynomial
+    Example
+      degree(quasiPolynomial(matrix{{1,2,3},{1,4,5}}))
+      degree(quasiPolynomial(matrix{{1,1},{1,2},{1,1},{1,2}}))
+      degree(quasiPolynomial(matrix{{3,6,7,2},{3,4,4,2},{3,2,5,6}}))
+  SeeAlso
+    RationalPolytopes
+///
+
+doc ///
+  Key
+    periodQP
+  Headline
+    a function
+  Usage
+    p = periodQP(QP)
+  Inputs
+    QP : QuasiPolynomial
+      A quasipolynomial of which we want to compute the period
+  Outputs
+    p : ZZ
+      The period of QP
+  Description
+    Text
+      Computes the period of a quasipolynomial
+    Example
+      periodQP(quasiPolynomial(matrix{{1,2,3},{1,4,5}}))
+      periodQP(quasiPolynomial(matrix{{1,1},{1,2},{1,1},{1,2}}))
+      periodQP(quasiPolynomial(matrix{{3,6,7,2},{3,4,4,2},{3,2,5,6}}))
+  SeeAlso
+    RationalPolytopes
+///
+
+doc ///
+  Key
+    coefficientMonomial
+  Headline
+    a function
+  Usage
+    L = coefficientMonomial(QP,i)
+  Inputs
+    QP : QuasiPolynomial
+      A quasipolynomial of which we want to know the coefficients
+    i : ZZ
+      The degree of the monomials of QP of which we want to know the coefficients 
+  Outputs
+    L : List
+      The coefficients of the monomials of degree i appearing in QP
+  Description
+    Text
+      Computes the coefficients of the monomials of degree i appearing in QP
+    Example
+      coefficientMonomial(quasiPolynomial(matrix{{1,2,3},{1,4,5}}),2)
+      coefficientMonomial(quasiPolynomial(matrix{{1,1},{1,2},{1,1},{1,2}}),0)
+      coefficientMonomial(quasiPolynomial(matrix{{3,6,7,2},{3,4,4,2},{3,2,5,6}}),2)
+  SeeAlso
+    RationalPolytopes
+///
   
 
 
@@ -428,11 +517,14 @@ EhrhartQP(P)
 
 -- Test of the constructor of the Type QuasiPolynomial
 
-M=matrix({{1,2,3},{1,2,3}})
+M=matrix({{1,2,3},{1,4,5}})
 QP=quasiPolynomial(M)
 QP#period
 print QP
 displayQP QP
+degree QP
+periodQP QP
+coefficientMonomial(QP,0)
 
 R=QQ[x]
 R1=QQ[t]
