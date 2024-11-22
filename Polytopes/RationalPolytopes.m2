@@ -15,7 +15,6 @@ newPackage(
 
 export {
     "hStar",
-    "PolynomialInterpolation",
     "Ehrhart",
     "EhrhartQP",
     "isPeriod",
@@ -33,6 +32,9 @@ export {
 -- degree
 -- coefficient list
 -- leading coefficient
+
+
+-- Cleaning function
 
 isPeriod=method()
 isPeriod(Matrix,ZZ) := (M,q) -> (
@@ -58,12 +60,16 @@ cleaning(Matrix) := M-> (
     M
     )
 
+
+-- Definition of the Type QuasiPolynomial
+
 QuasiPolynomial = new Type of HashTable
+
 quasiPolynomial = method()
 quasiPolynomial(Matrix) := M -> (
     Mclean:=cleaning(M);
     new QuasiPolynomial from {
-	period => numRows(Mclean), -- computation of the period from the matrix
+	period => numRows(Mclean),
 	coefficients => Mclean,
 	cache => new CacheTable,
 	}
@@ -89,75 +95,33 @@ quasiPolynomial(List) := L -> (
 	)
     )
 
+
+-- QuasiPolynomial as a function.
+
+QuasiPolynomial ZZ := (QP, v) -> (
+    internalQuasiPolynomial(QP,v)
+)
+
+internalQuasiPolynomial = method()
+internalQuasiPolynomial(QuasiPolynomial, ZZ) := (QP,t) -> (
+    r :=  (QP#coefficients)^{t%QP#period};
+    T := matrix for i in 0..(numRows QP#coefficients) list {t^(numrows QP#coefficients - i)};
+    (r*T)_(0,0)
+    )
+
+
+-- Various methods associated to a QuasiPolynomial
+
 displayQP = method()
 displayQP(QuasiPolynomial) := QP -> (
     R:=QQ[getSymbol "t"];
     t1:=(gens R)#0;
-    Mono :=  for d in 0..(numColumns QP#coefficients)-1 list {" + ", (QP#coefficients)_(d),t1^(numColumns (QP#coefficients)-d-1)};
-    fold((a,b) -> net a | net b , flatten Mono)
+    Mono := flatten  for d in 0..(numColumns QP#coefficients)-1 list {" + ", (QP#coefficients)_(d),t1^(numColumns (QP#coefficients)-d-1)};
+    fold((a,b) -> net a | net b , take(Mono,{1,length(Mono)-2}))
     )
 
 
-
-
-
--* Code section *-
-
-IsLatticePolytope=method()
-IsLatticePolytope(Polyhedron) := P -> (
-    M := vertices P;
-    test := true;
-    for a in flatten entries M do (
-	if denominator(a) != 1 then (
-	    test = false;
-	    );
-	);
-    test
-    );
-
-DenominatorOfPolytope=method()
-DenominatorOfPolytope(Polyhedron) := P -> (
-    lcm for x in flatten entries vertices P list denominator(x)
-    )
-
-EhrhartPolynomial=method()
-EhrhartPolynomial(Polyhedron) := P -> (
-    if IsLatticePolytope P then (
-	ehrhart P
-	)
-    else (
-	print DenominatorOfPolytope(P);
-	print "Work in progress...";
-	);
-    )
-
-TabularOfValues=method()
-TabularOfValues(Polyhedron) := P -> (
-    denom := DenominatorOfPolytope(P);
-    T := { {0,1} };
-    for d in 1 .. denom*(dim P + 1) do (
-	T = append(T, {d, length latticePoints (d*P)} );
-	);
-    SortedT := {};
-    for i in 0..denom-1 do(
-	SortedT = append(SortedT, for j in 0..dim P list T#(j*denom + i) );
-	);
-    print T;
-    print SortedT;
-)
-
-PolynomialInterpolation=method()
-PolynomialInterpolation(List,List,PolynomialRing) := (X,Y,R) -> (
-    Xpower := mutableMatrix(coefficientRing R, length X, length X);
-    for i in 0..length X-1 do (
-	for j in 0..length X-1 do (
-	    Xpower_(i,j) = (X#i)^j;
-	    );
-	);
-    S:=solve(matrix(Xpower),transpose matrix(coefficientRing R, {Y}));
-    sum for i in 0..length X - 1 list S_(i,0)*((generators R)#0)^i
-    )
-
+-* Ehrhart Polynomial part *-
 
 Ehrhart=method(TypicalValue=>RingElement)
 Ehrhart (Polyhedron,ZZ):=(P, i) -> (
@@ -185,7 +149,8 @@ Ehrhart (Polyhedron,ZZ):=(P, i) -> (
 EhrhartQP=method()
 EhrhartQP Polyhedron:=P->(
     k:=lcm for i in flatten entries vertices P list denominator promote(i,QQ);
-    for i from 0 to k-1 list Ehrhart(P,i))
+    quasiPolynomial(for i from 0 to k-1 list Ehrhart(P,i))
+    )
 
 
 hStar = method()
@@ -206,29 +171,6 @@ hStar(Polyhedron) := P -> (
   hStar(P,R)
   )
 
-isPeriod=method()
-isPeriod(Matrix,ZZ) := (M,q) -> (
-    result:=true;
-    if numRows M%q!=0 then result=false;
-    if numRows M%q==0 then (
-	for j from 0 to numRows M//q-1 do(
-	    if M^(toList(0 .. q-1))!=M^(toList((j*q .. (j+1)*q-1))) then result=false;
-	    );
-	);
-    result
-    )
-
-cleanCoefficients=method()
-cleanCoefficients(Matrix) := M -> (
-    q:=0;
-    for p from 1 to numRows M-1 do(
-	if isPeriod(M,p) then q=p;
-    );
-    if q!=0 then (
-	M=submatrix'(M,toList(q .. numRows M-1),);
-	);
-    M
-    )
 
 -* Documentation section *-
 beginDocumentation()
@@ -286,32 +228,6 @@ doc ///
       EhrhartQP(convexHull transpose matrix "0,0;1/2,0;0,1/2")
 ///
 
-
-doc ///
-  Key
-    PolynomialInterpolation
-  Headline
-    A method that compute the interpolation polynomial of a set of points.
-  Usage
-    P = PolynomialInterpolation(X,Y,R)
-  Inputs
-    X : List
-      a list of the x-coordinates of the points.
-    Y : List
-      a list of the y-coordinates of the points in the same order as in X.
-    R : PolynomialRing
-      an univariate polynomial ring over a ring containing all the coefficients of X and Y.
-  Outputs
-    P : RingElement
-      The interpolation polynomial.
-  Description
-    Text
-      A method that computes the interpolation polynomial of a set of points defined by (X_i,Y_i).
-    Example
-      PolynomialInterpolation({1,2,3},{1,4,9},QQ[x])
-  SeeAlso
-    RationalPolytopes
-///
 
 
 doc ///
@@ -405,8 +321,8 @@ end--
 restart
 
 uninstallPackage "RationalPolytopes"
-restart
 
+restart
 installPackage "RationalPolytopes"
 
 viewHelp "RationalPolytopes"
@@ -416,10 +332,10 @@ check "RationalPolytopes"
 
 
 P=convexHull transpose matrix "0;1/2"
-EhrhartQP(P)
+EQP=EhrhartQP(P)
 
 P=convexHull transpose matrix "1,0;-1,0;0,1/2;0,-1/2"
-EhrhartQP(P)
+diasplayQP EhrhartQP(P)
 
 P=convexHull transpose matrix "-1/2; 1/2"
 EhrhartQP(P)
@@ -428,7 +344,7 @@ EhrhartQP(P)
 
 -- Test of the constructor of the Type QuasiPolynomial
 
-M=matrix({{1,2,3},{1,2,3}})
+M=matrix({{1,2,3},{0,1,0},{1,2,3},{0,1,0}})
 QP=quasiPolynomial(M)
 QP#period
 print QP
