@@ -107,7 +107,7 @@ QuasiPolynomial ZZ := (QP, v) -> (
 internalQuasiPolynomial = method()
 internalQuasiPolynomial(QuasiPolynomial, ZZ) := (QP,t) -> (
     r :=  (QP#coefficients)^{t%QP#period};
-    T := matrix for i in 0..(numRows QP#coefficients) list {t^(numrows QP#coefficients - i)};
+    T := matrix for i in 0..(numRows QP#coefficients - 1) list {t^(numrows QP#coefficients - i)};
     (r*T)_(0,0)
     )
 
