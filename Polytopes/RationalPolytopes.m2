@@ -7,7 +7,8 @@ newPackage(
 	{Name => "Oliver Clarke", Email => "oliver.clarke@ed.ac.uk", HomePage => "https://www.oliverclarkemath.com/"},
 	{Name => "Alex Milner", Email => "A.J.C.Milner@sms.ed.ac.uk", HomePage => ""},
 	{Name => "Victoria Schleis", Email => "victoria.m.schleis@durham.ac.uk", HomePage => "https://victoriaschleis.github.io/"},
-	{Name => "Vincenzo Reda", Email => "redav@tcd.ie", HomePage => ""}},
+	{Name => "Vincenzo Reda", Email => "redav@tcd.ie", HomePage => ""},
+	{Name => "Benoît Guerville-Ballé", Email -> "benoit.guerville-balle@math.cnrs.fr", HomePage -> "https://www.benoit-guervilleballe.com"}},
    AuxiliaryFiles => false,
     DebuggingMode => false,
     PackageExports => {"Polyhedra"}
@@ -29,14 +30,6 @@ export {
     }
 
 -* QuasiPolynomial Type *-
-
--- List of polynomial
--- Period
--- Ring of Polynomial
--- degree
--- coefficient list
--- leading coefficient
-
 
 -- Cleaning function
 
@@ -141,7 +134,6 @@ coefficientMonomial(QuasiPolynomial,ZZ) := (QP,i) -> (
     )
 
 
--* Code section *-
 
 -* Ehrhart Polynomial part *-
 
@@ -211,29 +203,6 @@ ehrhartSeries Polyhedron := P -> (
     ehrhartSeries(P, QQ[getSymbol "t"]) 
     )
 
-
-isPeriod(Matrix,ZZ) := (M,q) -> (
-    result:=true;
-    if numRows M%q!=0 then result=false;
-    if numRows M%q==0 then (
-	for j from 0 to numRows M//q-1 do(
-	    if M^(toList(0 .. q-1))!=M^(toList((j*q .. (j+1)*q-1))) then result=false;
-	    );
-	);
-    result
-    )
-
-cleanCoefficients=method()
-cleanCoefficients(Matrix) := M -> (
-    q:=0;
-    for p from 1 to numRows M-1 do(
-	if isPeriod(M,p) then q=p;
-    );
-    if q!=0 then (
-	M=submatrix'(M,toList(q .. numRows M-1),);
-	);
-    M
-    )
 
 
 -* Documentation section *-
