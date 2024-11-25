@@ -23,7 +23,9 @@ export {
     "period",
     "displayQP",
     "periodQP",
-    "coefficientMonomial"
+    "coefficientMonomial",
+    "ehrhartSeries",
+    "ReturnDenominator"
     }
 
 -* QuasiPolynomial Type *-
@@ -174,23 +176,40 @@ EhrhartQP Polyhedron:=P->(
     )
 
 
-hStar = method()
-hStar(Polyhedron , Ring) := (P, R) -> (
-  n:=dim P;
-  dnom := lcm for i in flatten entries vertices P list denominator promote(i,QQ);
-  p:=1;
-  t:=R_0;
-  for i from 1 to n*dnom+1 do (p=p + #latticePoints(i*P) * t^i);
-  f:=0;
-  r:=(1-t^dnom)^(n+1);
-  for i from 0 to n*dnom+1 do f=f+part(i,p * r);
-  f
+hStar = method(
+    Options => {
+	ReturnDenominator => false --returns a pair of polys (h, d) s.t. Ehrhart series is h/d
+	})
+
+hStar(Polyhedron , Ring) := opts -> (P, R) -> (
+    n:=dim P;
+    dnom := lcm for i in flatten entries vertices P list denominator promote(i,QQ);
+    p:=1;
+    t:=R_0;
+    for i from 1 to (n+1)*dnom do (p=p + #latticePoints(i*P) * t^i);
+    r:=(1-t^dnom)^(n+1);
+    f := (p*r) % t^((n+1)*dnom);
+    if opts.ReturnDenominator then (f, r) else f
   )
 
-hStar(Polyhedron) := P -> (
-  R:=QQ[Variables => 1];
-  hStar(P,R)
+hStar(Polyhedron) := opts -> P -> (
+  R:=QQ[getSymbol "t"];
+  hStar(P, R, opts)
   )
+
+
+ehrhartSeries = method()
+ehrhartSeries(Polyhedron, Ring) := (P, R) -> (
+    (h, d) := hStar(P, R, ReturnDenominator => true);
+    F := frac R;
+    h = h_F;
+    d = d_F;
+    h/d
+    )
+
+ehrhartSeries Polyhedron := P -> (
+    ehrhartSeries(P, QQ[getSymbol "t"]) 
+    )
 
 
 isPeriod(Matrix,ZZ) := (M,q) -> (
@@ -655,3 +674,6 @@ hStar(Polyhedron) := P -> (
 
 P = convexHull transpose matrix "1,0;-1,0;0,1/20;-1,11/20"
 EhrhartQP(P)
+
+hStar P
+ehrhartSeries P
