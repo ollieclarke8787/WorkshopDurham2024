@@ -8,8 +8,9 @@ newPackage(
 	{Name => "Alex Milner", Email => "A.J.C.Milner@sms.ed.ac.uk", HomePage => ""},
 	{Name => "Victoria Schleis", Email => "victoria.m.schleis@durham.ac.uk", HomePage => "https://victoriaschleis.github.io/"},
 	{Name => "Vincenzo Reda", Email => "redav@tcd.ie", HomePage => ""},
-	{Name => "Benoît Guerville-Ballé", Email -> "benoit.guerville-balle@math.cnrs.fr", HomePage -> "https://www.benoit-guervilleballe.com"}},
-   AuxiliaryFiles => false,
+	{Name => "Benoît Guerville-Ballé", Email => "benoit.guerville-balle@math.cnrs.fr", HomePage => "https://www.benoit-guervilleballe.com"}
+	},
+    AuxiliaryFiles => false,
     DebuggingMode => false,
     PackageExports => {"Polyhedra"}
     )
@@ -19,7 +20,7 @@ export {
     "Ehrhart",
     "EhrhartQP",
     "isPeriod",
-    "cleanCoefficients",
+    -- "cleanCoefficients",
     "quasiPolynomial",
     "period",
     "displayQP",
@@ -316,53 +317,6 @@ doc ///
 
 doc ///
   Key
-    cleanCoefficients
-  Headline
-    a function
-  Usage
-    T = cleanCoefficients(M)
-  Inputs
-    M : Matrix
-  Outputs
-    T : Matrix
-      T is obtained from M eliminating periodicity in M
-  Description
-    Text
-      it produces a matrix from M which is not periodic
-    Example
-      cleanCoefficients(matrix "1,1;2,2;1,1;2,2")
-      cleanCoefficients(matrix "1,1;2,2;1,1;2,2")
-      cleanCoefficients(matrix "1,2,5;2,4,3;1,2,5;3,4,5;1,2,5;2,4,3;1,2,5;3,4,5")
-  SeeAlso
-    RationalPolytopes
-///
-
-doc ///
-  Key
-   "degree(QuasiPolynomial)"
-  Headline
-    a function
-  Usage
-    n = degree(QP)
-  Inputs
-    QP : QuasiPolynomial
-      A quasipolynomial of which we want to know the degree
-  Outputs
-    n : ZZ
-      The degree of QP
-  Description
-    Text
-      Computes the degree of a quasipolynomial
-    Example
-      degree(quasiPolynomial(matrix{{1,2,3},{1,4,5}}))
-      degree(quasiPolynomial(matrix{{1,1},{1,2},{1,1},{1,2}}))
-      degree(quasiPolynomial(matrix{{3,6,7,2},{3,4,4,2},{3,2,5,6}}))
-  SeeAlso
-    RationalPolytopes
-///
-
-doc ///
-  Key
     periodQP
   Headline
     a function
@@ -646,3 +600,55 @@ EhrhartQP(P)
 
 hStar P
 ehrhartSeries P
+
+
+-----------------------------------
+--old doc--
+
+doc ///
+  Key
+    cleanCoefficients
+  Headline
+    a function
+  Usage
+    T = cleanCoefficients(M)
+  Inputs
+    M : Matrix
+  Outputs
+    T : Matrix
+      T is obtained from M eliminating periodicity in M
+  Description
+    Text
+      it produces a matrix from M which is not periodic
+    Example
+      cleanCoefficients(matrix "1,1;2,2;1,1;2,2")
+      cleanCoefficients(matrix "1,1;2,2;1,1;2,2")
+      cleanCoefficients(matrix "1,2,5;2,4,3;1,2,5;3,4,5;1,2,5;2,4,3;1,2,5;3,4,5")
+  SeeAlso
+    RationalPolytopes
+///
+
+doc ///
+  Key
+   "degree(QuasiPolynomial)"
+  Headline
+    a function
+  Usage
+    n = degree(QP)
+  Inputs
+    QP : QuasiPolynomial
+      A quasipolynomial of which we want to know the degree
+  Outputs
+    n : ZZ
+      The degree of QP
+  Description
+    Text
+      Computes the degree of a quasipolynomial
+    Example
+      degree(quasiPolynomial(matrix{{1,2,3},{1,4,5}}))
+      degree(quasiPolynomial(matrix{{1,1},{1,2},{1,1},{1,2}}))
+      degree(quasiPolynomial(matrix{{3,6,7,2},{3,4,4,2},{3,2,5,6}}))
+  SeeAlso
+    RationalPolytopes
+///
+
