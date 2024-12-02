@@ -463,7 +463,7 @@ EhrhartQP(P)
 
 S=matrix({{1,2,3},{1,4,5}})
 M=matrix({{1,2,3},{0,1,0},{1,2,3},{0,1,0}})
->>>>>>> d04361317282fa5dc9611b857a026e43e63b2a0d
+
 QP=quasiPolynomial(M)
 QP#period
 print QP
