@@ -75,7 +75,38 @@ fiberGraphGenerator Matrix := A ->(
     );
 
 
+-- lists edges of all labelled trees on {1 .. n}
+pruferSequence = method();
+pruferSequence ZZ := n ->(
+    local cg;
+    local deg;
+    ite := listProd splice {(n-2) : toList(0..(n-1))}; -- {1 .. n}^(n-2)
+    for i in ite list (
+	cg = new MutableList; -- list of edges
+	deg = new MutableList from toList(n : 1); -- degrees of vertices
+        for j in i do(
+	    deg#j = deg#j + 1;
+            );
+        for j in i do(
+            for l from 0 to n-1 do(
+                if deg#l == 1 then(
+		    cg##cg = set {l,j};
+		    deg#j = deg#j -1;
+		    deg#l = deg#l -1;
+                    break;
+                    );
+                );
+            );
+	cg##cg = set positions(deg,x -> x==1);
+        toList cg
+	)
+    );
 
+-*
+-- previous version of pruferSequence
+-- Note: 'replace' and 'addEdge' create new objects
+-- so new version is around 100x faster:
+-- E.g. n = 7. old version: 54.9312 seconds, new version: 0.242806 seconds 
 pruferSequence = method();
 pruferSequence ZZ := n ->(
     local cg;
@@ -103,19 +134,15 @@ pruferSequence ZZ := n ->(
         );
     out
     );
+*-
 
 
-
+-- direct product of lists (unexported)
 listProd = method();
 listProd List := Ls -> (
-    lP := (pr,ad) -> (
-        flatten for i in pr list(for el in ad list(append(i,el)))
-        );
-    cur := {{}};
-    for j in Ls do(
-        cur=lP(cur,j);
-        );
-    cur
+    fold((pr, ad) -> flatten for i in pr list for el in ad list append(i, el),
+	{{}},
+	Ls)
     );
 
 
@@ -266,4 +293,21 @@ uninstallPackage "allMarkovBase"
 restart
 installPackage "allMarkovBases"
 
+loadPackage "allMarkovBases"
 check allMarkovBases
+
+
+elapsedTime pruferSequence(8);
+
+
+-- if a toric ideal is created by toricMarkov
+-- then the information of the matrix A is not cached anywhere
+A = matrix {{1,2,3,4,5}}
+R = QQ[x_1 .. x_5]
+I = toricMarkov(A, R)
+peek I.cache -- empty
+peek (gens I).cache
+
+
+
+
