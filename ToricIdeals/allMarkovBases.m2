@@ -1,5 +1,7 @@
 
 
+
+
 newPackage(
     "allMarkovBases",
     Version => "0.1",
@@ -17,7 +19,9 @@ newPackage(
 export {
     "fiberGraphGenerator",
     "pruferSequence",
-    "markovBases"
+    "markovBases",
+    "randomMarkovBasis",
+    "randomMarkovBases"
     }
 
 
@@ -75,6 +79,38 @@ fiberGraphGenerator Matrix := A ->(
     );
 
 
+
+
+-- edge list of spanning tree corresponding to L
+pruferSequence = method();
+pruferSequence List := L ->(
+    local n;
+    local cg;
+    local deg;
+    n = (length L) + 2;
+    cg = new MutableList; -- list of edges
+    deg = new MutableList from toList(n : 1); -- degrees of vertices
+    for j in L do(
+	deg#j = deg#j + 1;
+        );
+    for j in L do(
+        for l from 0 to n-1 do(
+            if deg#l == 1 then(
+		cg##cg = set {l,j};
+		deg#j = deg#j -1;
+		deg#l = deg#l -1;
+                break;
+                );
+            );
+        );
+    cg##cg = set positions(deg,x -> x==1);
+    toList cg
+    );
+
+
+
+
+-*
 -- lists edges of all labelled trees on {1 .. n}
 pruferSequence = method();
 pruferSequence ZZ := n ->(
@@ -102,7 +138,7 @@ pruferSequence ZZ := n ->(
 	)
     );
 
--*
+
 -- previous version of pruferSequence
 -- Note: 'replace' and 'addEdge' create new objects
 -- so new version is around 100x faster:
@@ -150,11 +186,62 @@ listProd List := Ls -> (
 markovBases = method();
 markovBases Matrix := A -> (
     G:=fiberGraphGenerator A;
-    cc:=for j from 0 to (length G)-1 list(connectedComponents G_j);
-    poss:=for k from 0 to (length G)-1 list(pruferSequence length cc_k);
-    fin:=listProd(for k from 0 to (length poss)-1 list(flatten for i from 0 to (length poss_k)-1 list(listProd(for j from 0 to (length (poss_k)_i)-1 list(for w in listProd(for l in keys ((poss_k)_i)_j list((cc_k)_l)) list(w_0-w_1))))));
-    for m in fin list(flatten m)
+    cc:=for j from 0 to #G-1 list connectedComponents G#j;
+    poss:=for k from 0 to #G-1 list(
+        for i in listProd splice {#cc#k-2 : toList(0..#cc#k-1)} list pruferSequence i
+        );
+    fin:=listProd for k from 0 to #poss-1 list(
+        flatten for i from 0 to #poss#k-1 list(
+            listProd for j from 0 to #poss#k#i-1 list(
+                x:=listProd for l in keys poss#k#i#j list cc#k#l;
+                for w in x list w#0-w#1
+                )
+            )
+        );
+    for m in fin list flatten m
     );
+
+
+randomMarkovBasis = method();
+randomMarkovBasis Matrix := A -> (
+    G:=fiberGraphGenerator A;
+    cc:=for j from 0 to #G-1 list connectedComponents G#j;
+    poss:=for k from 0 to #G-1 list(
+        pruferSequence for i from 0 to #cc#k-3 list random length cc#k
+        );
+    flatten for k from 0 to #poss-1 list(
+        for j from 0 to #poss#k-1 list(
+            w:=for l in keys poss#k#j list(
+                cc#k#l#(random length cc#k#l)
+                    );
+            w#0-w#1
+            )
+        )
+    );
+
+randomMarkovBases = method();
+randomMarkovBases (Matrix,ZZ) := (A,n) -> (
+    G:=fiberGraphGenerator A;
+    cc:=for j from 0 to #G-1 list connectedComponents G_j;
+    for i from 0 to n-1 list(
+        poss:=for k from 0 to #G-1 list(
+            pruferSequence for j from 0 to #cc#k-3 list random length cc#k
+            );
+        flatten for k from 0 to #poss-1 list(
+            for j from 0 to #poss#k-1 list(
+                w:=for l in keys poss#k#j list cc#k#l#(random length cc#k#l);
+                w#0-w#1
+                )
+            )
+        )
+    );
+
+
+
+
+
+
+
 
 
 
@@ -205,23 +292,23 @@ doc ///
 doc ///
   Key
     pruferSequence
-    (pruferSequence, ZZ)
+    (pruferSequence, List)
   Headline
-    the edge set of every spanning tree on n vertices via Prüfer's algorithm
+    the corresponding edge set of the spanning tree corresponding to the given Prüfer sequence
   Usage
-    E=pruferSequence(n)
+    E=pruferSequence(L)
   Inputs
-    n : ZZ
-      the number of vertices of the tree
-  Outputs
     L : List
-      a list of edge sets corresponding to every spanning tree on n nodes
+      Prüfer sequence to be converted into tree
+  Outputs
+    E : List
+      the corresponding edge set of the spanning tree corresponding to the given Prüfer sequence L
   Description
     Text
-      this method constructs the edge set of every spanning tree on n nodes via Prüfer's algorithm
+      computes the corresponding edge set of the spanning tree corresponding to the given Prüfer sequence L, calculated via Prüfer's algorithm
     Example
-      pruferSequence 3
-      pruferSequence 4
+      pruferSequence {2}
+      pruferSequence {1,3}
   SeeAlso
     markovBases
     allMarkovBases
@@ -256,9 +343,70 @@ doc ///
       markovBases matrix "1,2,3,4"
       markovBases matrix "1,2,3;4,5,6"
   SeeAlso
+    allMarkovBases
+///
+
+
+
+doc ///
+  Key
+    randomMarkovBasis
+    (randomMarkovBasis, Matrix)
+  Headline
+    one randomly chosen minimal Markov basis
+  Usage
+    B=randomMarkovBasis(A)
+  Inputs
+    A : Matrix
+      the configuration matrix
+  Outputs
+    B : List
+      a Markov basis of A formatted as a list of vectors
+  Description
+    Text
+      this method outputs one randomly chosen Markov basis for a given configuration matrix A
+    Example
+      randomMarkovBasis matrix "1,2,3"
+      randomMarkovBasis matrix "1,2,3,4"
+  SeeAlso
+    randomMarkovBases
     markovBases
     allMarkovBases
 ///
+
+
+
+doc ///
+  Key
+    randomMarkovBases
+    (randomMarkovBases, Matrix, ZZ)
+  Headline
+    n randomly chosen minimal Markov bases
+  Usage
+    B=randomMarkovBases(A,n)
+  Inputs
+    A : Matrix
+      the configuration matrix
+    n : ZZ
+      a positive integer
+  Outputs
+    B : List
+      a list of n randomly chosen Markov bases
+  Description
+    Text
+      this method outputs n randomly chosen Markov bases for a given configuration matrix A
+    Example
+      randomMarkovBasis(matrix "1,2,3,4",2)
+      randomMarkovBasis(matrix "1,1,1,1",10)
+  SeeAlso
+    randomMarkovBasis
+    markovBases
+    allMarkovBases
+///
+
+
+
+
 
 -* Test section *-
 
