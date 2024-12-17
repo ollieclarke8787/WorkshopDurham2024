@@ -87,7 +87,7 @@ pruferSequence List := L ->(
     local n;
     local cg;
     local deg;
-    n = (length L) + 2;
+    n = #L + 2;
     cg = new MutableList; -- list of edges
     deg = new MutableList from toList(n : 1); -- degrees of vertices
     for j in L do(
