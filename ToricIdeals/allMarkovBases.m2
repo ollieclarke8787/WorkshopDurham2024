@@ -26,8 +26,67 @@ export {
 
 
 
+
+
+
+
 -* Code *-
 
+
+
+fiberGraphGenerator = method();
+fiberGraphGenerator Matrix := A ->(
+    local val;
+    local stk;
+    local temp;
+    local ck;
+    local cur;
+    n := numColumns A;
+    M := toricMarkov A;
+    d := numRows M;
+    L := new MutableList;    
+    Md := new MutableList;
+    vales := new MutableList;
+    for i from 0 to d-1 do(
+        temp=for j from 0 to n-1 list(if M_(i,j)>=0 then M_(i,j) else 0);
+        val = (A * transpose matrix{temp});
+        if all(vales,z -> z!=val) then L##L={temp,val};
+        vales##vales=val;
+        Md##Md = vector transpose M^{i};
+        Md##Md = - vector transpose M^{i};
+        );
+    Gindex := new MutableList;
+    G := new MutableList;
+    for k from 0 to #L - 1 do(
+        stk := new MutableList from {vector L#k#0};
+        Gi := new MutableList from {vector L#k#0};
+        Gt:=matrix"0";
+        while #stk != 0 do(
+            cur := stk#0;
+            for i from 0 to #Md - 1 do(
+                ck := Md#i + cur;
+                if (all(entries ck,z -> z>=0) and all(Gi,z -> z!=ck)) then (
+                    stk##stk=ck;
+                    x:=matrix{for j from 0 to #Gi-1 list(
+                        if (not all(entries ck,entries Gi#j,(y,z) -> y<=0 or z<=0)) then 1 else 0
+                        )};
+                    Gt=matrix{{Gt,transpose x},{x,matrix{{0}}}};
+                    Gi##Gi=ck;
+                    );
+                );
+            remove(stk,0);
+            );
+        Gindex##Gindex=Gi;
+        G##G=Gt;
+        );
+    for k from 0 to #G - 1 list graph(toList Gindex#k,G#k)
+    );
+
+
+
+-*
+
+Old method without using adjacency matrices
 fiberGraphGenerator = method();
 fiberGraphGenerator Matrix := A ->(
     local val;
@@ -76,8 +135,58 @@ fiberGraphGenerator Matrix := A ->(
             );
         );
     G
-    );
+    );*-
 
+
+
+--Connected components of fibres (unexported)
+fiberConnectedComponents = method();
+fiberConnectedComponents Matrix := A ->(
+    local val;
+    local stk;
+    local temp;
+    local ck;
+    local cur;
+    n := numColumns A;
+    M := toricMarkov A;
+    d := numRows M;
+    L := new MutableList;    
+    Md := new MutableList;
+    vales := new MutableList;
+    for i from 0 to d-1 do(
+        temp=for j from 0 to n-1 list(if M_(i,j)>=0 then M_(i,j) else 0);
+        val = (A * transpose matrix{temp});
+        if all(vales,z -> z!=val) then L##L={temp,val};
+        vales##vales=val;
+        Md##Md = vector transpose M^{i};
+        Md##Md = - vector transpose M^{i};
+        );
+    Gindex := new MutableList;
+    G := new MutableList;
+    for k from 0 to #L - 1 do(
+        stk := new MutableList from {vector L#k#0};
+        Gi := new MutableList from {vector L#k#0};
+        Gt:=matrix"0";
+        while #stk != 0 do(
+            cur := stk#0;
+            for i from 0 to #Md - 1 do(
+                ck := Md#i + cur;
+                if (all(entries ck,z -> z>=0) and all(Gi,z -> z!=ck)) then (
+                    stk##stk=ck;
+                    x:=matrix{for j from 0 to #Gi-1 list(
+                        if (not all(entries ck,entries Gi#j,(y,z) -> y<=0 or z<=0)) then 1 else 0
+                        )};
+                    Gt=matrix{{Gt,transpose x},{x,matrix{{0}}}};
+                    Gi##Gi=ck;
+                    );
+                );
+            remove(stk,0);
+            );
+        Gindex##Gindex=Gi;
+        G##G=Gt;
+        );
+    for k from 0 to #G - 1 list connectedComponents graph(toList Gindex#k,G#k)
+    );
 
 
 
@@ -185,9 +294,8 @@ listProd List := Ls -> (
 
 markovBases = method();
 markovBases Matrix := A -> (
-    G:=fiberGraphGenerator A;
-    cc:=for j from 0 to #G-1 list connectedComponents G#j;
-    poss:=for k from 0 to #G-1 list(
+    cc:= fiberConnectedComponents A;
+    poss:=for k from 0 to #cc-1 list(
         for i in listProd splice {#cc#k-2 : toList(0..#cc#k-1)} list pruferSequence i
         );
     fin:=listProd for k from 0 to #poss-1 list(
@@ -204,9 +312,8 @@ markovBases Matrix := A -> (
 
 randomMarkovBasis = method();
 randomMarkovBasis Matrix := A -> (
-    G:=fiberGraphGenerator A;
-    cc:=for j from 0 to #G-1 list connectedComponents G#j;
-    poss:=for k from 0 to #G-1 list(
+    cc:= fiberConnectedComponents A;    
+    poss:=for k from 0 to #cc-1 list(
         pruferSequence for i from 0 to #cc#k-3 list random length cc#k
         );
     flatten for k from 0 to #poss-1 list(
@@ -221,10 +328,9 @@ randomMarkovBasis Matrix := A -> (
 
 randomMarkovBases = method();
 randomMarkovBases (Matrix,ZZ) := (A,n) -> (
-    G:=fiberGraphGenerator A;
-    cc:=for j from 0 to #G-1 list connectedComponents G_j;
+    cc:= fiberConnectedComponents A;
     for i from 0 to n-1 list(
-        poss:=for k from 0 to #G-1 list(
+        poss:=for k from 0 to #cc-1 list(
             pruferSequence for j from 0 to #cc#k-3 list random length cc#k
             );
         flatten for k from 0 to #poss-1 list(
@@ -235,6 +341,8 @@ randomMarkovBases (Matrix,ZZ) := (A,n) -> (
             )
         )
     );
+
+
 
 
 
