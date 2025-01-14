@@ -21,7 +21,9 @@ export {
     "pruferSequence",
     "markovBases",
     "randomMarkovBasis",
-    "randomMarkovBases"
+    "randomMarkovBases",
+    "randomMarkov",
+    "NumberOfBases"
     }
 
 
@@ -47,6 +49,9 @@ fiberGraphGenerator Matrix := A ->(
     L := new MutableList;    
     Md := new MutableList;
     vales := new MutableList;
+    -- vales as a MutableHashTable (values are the starting elements of the fiber i.e. L)
+    -- to get the list of vales: keys vales
+    --
     for i from 0 to d-1 do(
         temp=for j from 0 to n-1 list(if M_(i,j)>=0 then M_(i,j) else 0);
         val = (A * transpose matrix{temp});
@@ -60,6 +65,10 @@ fiberGraphGenerator Matrix := A ->(
     for k from 0 to #L - 1 do(
         stk := new MutableList from {vector L#k#0};
         Gi := new MutableList from {vector L#k#0};
+	-- Gi as a MutableHashTable:
+	--  keys: elements of the fiber
+	--  values: index in the matrix
+	-- so we can replace: "all(Gi, z-...)" with "Gi#?ck" 
         Gt:=matrix"0";
         while #stk != 0 do(
             cur := stk#0;
@@ -310,6 +319,32 @@ markovBases Matrix := A -> (
     );
 
 
+
+randomMarkov = method(
+    Options => {
+	NumberOfBases => 1
+	}
+    );
+
+randomMarkov Matrix := opts -> A -> (
+    cc:= fiberConnectedComponents A;
+    result := for i from 0 to opts.NumberOfBases - 1 list(
+        poss:=for k from 0 to #cc-1 list(
+            pruferSequence for j from 0 to #cc#k-3 list random length cc#k
+            );
+        flatten for k from 0 to #poss-1 list(
+            for j from 0 to #poss#k-1 list(
+                w:=for l in keys poss#k#j list cc#k#l#(random length cc#k#l);
+                w#0-w#1
+                )
+            )
+        );
+    if opts.NumberOfBases == 1 then result_0 else result 
+    );
+
+
+---------------
+-- Todo: remove these random functions (they are combined above)
 randomMarkovBasis = method();
 randomMarkovBasis Matrix := A -> (
     cc:= fiberConnectedComponents A;    
@@ -342,13 +377,7 @@ randomMarkovBases (Matrix,ZZ) := (A,n) -> (
         )
     );
 
-
-
-
-
-
-
-
+--------------------------
 
 
 
@@ -504,8 +533,8 @@ doc ///
     Text
       this method outputs n randomly chosen Markov bases for a given configuration matrix A
     Example
-      randomMarkovBasis(matrix "1,2,3,4",2)
-      randomMarkovBasis(matrix "1,1,1,1",10)
+      randomMarkovBases(matrix "1,2,3,4",2)
+      randomMarkovBases(matrix "1,1,1,1",10)
   SeeAlso
     randomMarkovBasis
     markovBases
@@ -545,7 +574,7 @@ end--
 
 -- development stuff
 restart
-uninstallPackage "allMarkovBase"
+uninstallPackage "allMarkovBases"
 restart
 installPackage "allMarkovBases"
 
@@ -564,6 +593,19 @@ I = toricMarkov(A, R)
 peek I.cache -- empty
 peek (gens I).cache
 
+-----
+-- big to do:
+-- check documentation [Ollie]
 
+-- little to dos:
+-- 
+-- use matrices over vectors [Alex]
+-- return the Markov bases as matrices just like "toricMarkov" [Alex]
+-- 
+-- markovBases(A, R) ---> list of ideals / generating sets in R (just like toricMarkov)
+-- use 'toBinomial' (from FourTiTwo) to construct the polynomials from matrices
 
+-- in fiberGenerating function replace Gi with a MutableHashTable [Ollie]
+
+-- combine the functions for generating fibers and add an otpional parameter: ReturnConnectedComponents
 
