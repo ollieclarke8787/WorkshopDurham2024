@@ -23,7 +23,9 @@ export {
     "randomMarkovBasis",
     "randomMarkovBases",
     "randomMarkov",
-    "NumberOfBases"
+    "NumberOfBases",
+    "fiberGraph",
+    "returnConnectedComponents"
     }
 
 
@@ -35,6 +37,78 @@ export {
 -* Code *-
 
 
+
+fiberGraph = method(
+    Options => {
+        returnConnectedComponents => false
+	}
+    );
+
+fiberGraph Matrix := opts -> A -> (
+    local val;
+    local stk;
+    local temp;
+    local ck;
+    local cur;
+    n := numColumns A;
+    M := toricMarkov A;
+    d := numRows M;
+    L := new MutableList;    
+    Md := new MutableList;
+    vales := new MutableList;
+    -- vales as a MutableHashTable (values are the starting elements of the fiber i.e. L)
+    -- to get the list of vales: keys vales
+    --
+    for i from 0 to d-1 do(
+        temp=for j from 0 to n-1 list(if M_(i,j)>=0 then M_(i,j) else 0);
+        val = (A * transpose matrix{temp});
+        if all(vales,z -> z!=val) then L##L={temp,val};
+        vales##vales=val;
+	Mdel := flatten entries M^{i};
+        Md##Md = Mdel;
+        Md##Md = - Mdel;
+        );
+    Gindex := new MutableList;
+    G := new MutableList;
+    for k from 0 to #L - 1 do(
+        stk := new MutableList from {L#k#0};
+        Gi := new MutableList from {L#k#0};
+	-- Gi as a MutableHashTable:
+	--  keys: elements of the fiber
+	--  values: index in the matrix
+	-- so we can replace: "all(Gi, z-...)" with "Gi#?ck" 
+        Gt:=matrix"0";
+        while #stk != 0 do(
+            cur := stk#0;
+            for i from 0 to #Md - 1 do(
+                ck := Md#i + cur;
+                if (all(ck,z -> z>=0) and all(Gi,z -> z!=ck)) then (
+                    stk##stk=ck;
+                    x:=matrix{for j from 0 to #Gi-1 list(
+                        if (not all(ck,Gi#j,(y,z) -> y<=0 or z<=0)) then 1 else 0
+                        )};
+                    Gt=matrix{{Gt,transpose x},{x,matrix{{0}}}};
+                    Gi##Gi=ck;
+                    );
+                );
+            remove(stk,0);
+            );
+        Gindex##Gindex=Gi;
+        G##G=Gt;
+        );
+    if opts.returnConnectedComponents then(
+	result:=for k from 0 to #G - 1 list connectedComponents graph(toList Gindex#k,G#k)
+	) else (
+	result=for k from 0 to #G - 1 list graph(toList Gindex#k,G#k)
+	);
+    --print(keys G#0);
+    result
+    );
+
+
+
+
+--To do: Remove fiberGraph Generator and fiberConnectedComponents as they are now replaced by fiberGraph
 
 fiberGraphGenerator = method();
 fiberGraphGenerator Matrix := A ->(
@@ -303,7 +377,7 @@ listProd List := Ls -> (
 
 markovBases = method();
 markovBases Matrix := A -> (
-    cc:= fiberConnectedComponents A;
+    cc := fiberGraph(A,returnConnectedComponents =>true);
     poss:=for k from 0 to #cc-1 list(
         for i in listProd splice {#cc#k-2 : toList(0..#cc#k-1)} list pruferSequence i
         );
@@ -315,7 +389,7 @@ markovBases Matrix := A -> (
                 )
             )
         );
-    for m in fin list flatten m
+    for m in fin list matrix flatten m
     );
 
 
@@ -327,12 +401,12 @@ randomMarkov = method(
     );
 
 randomMarkov Matrix := opts -> A -> (
-    cc:= fiberConnectedComponents A;
+    cc := fiberGraph(A,returnConnectedComponents =>true);
     result := for i from 0 to opts.NumberOfBases - 1 list(
         poss:=for k from 0 to #cc-1 list(
             pruferSequence for j from 0 to #cc#k-3 list random length cc#k
             );
-        flatten for k from 0 to #poss-1 list(
+        matrix flatten for k from 0 to #poss-1 list(
             for j from 0 to #poss#k-1 list(
                 w:=for l in keys poss#k#j list cc#k#l#(random length cc#k#l);
                 w#0-w#1
@@ -413,8 +487,7 @@ doc ///
   Description
     Text
       This method constructs the relevant fibers of a configuration matrix $A$ using a recursive algorithm.
-      The fibres are returned as a list of graphs where two vectors in a fiber are adjacent if their
-      supports have non-trivial intersection.
+      The fibres are returned as a list of graphs where two vectors in a fiber are adjacent if their supports have non-trivial intersection.
     Example
       fiberGraphGenerator matrix "3,4,5"
       fiberGraphGenerator matrix "1,2,3"
@@ -548,24 +621,24 @@ doc ///
 -* Test section *-
 
 TEST /// -- unique minimal Markov basis for monomial curve in A^3
-assert(markovBases matrix "3,4,5" == {{vector {1,-2,1},vector {2,1,-2}, vector {3,-1,-1}}})
+assert(markovBases matrix "3,4,5" == {toricMarkov matrix "3,4,5"})
 ///
 
 TEST /// -- two minimal Markov bases for (CI) monomial curve in A^3
-assert(markovBases matrix "1,2,3" == {{vector {2,-1,0},vector {3,0,-1}},{ vector {2,-1,0}, vector {1,1,-1}}})
+assert(markovBases matrix "1,2,3" == {matrix {{2,-1,0},{3,0,-1}},matrix {{2,-1,0},{1,1,-1}}})
 ///
 
 TEST /// -- hypersurface in A^3
-assert(markovBases matrix "1,2,3;4,5,6" == {{vector {1,-2,1}}})
+assert(markovBases matrix "1,2,3;4,5,6" == {matrix {{1,-2,1}}})
 ///
 
 TEST /// -- monomial curve in A^5 with five minimal Markov bases
 result := {
-    {vector {5, -2, 0}, vector {20, 0, -1}},
-    {vector {5, -2, 0}, vector {5, 6, -1}},
-    {vector {5, -2, 0}, vector {10, 4, -1}},
-    {vector {5, -2, 0}, vector {15, 2, -1}},
-    {vector {5, -2, 0}, vector {0, 8, -1}}};
+    matrix {{5, -2, 0},{20, 0, -1}},
+    matrix {{5, -2, 0},{15, 2, -1}},
+    matrix {{5, -2, 0},{10, 4, -1}},
+    matrix {{5, -2, 0},{5, 6, -1}},
+    matrix {{5, -2, 0},{0, 8, -1}}};
 assert(markovBases matrix "2,5,40" == result)
 ///
 
@@ -593,22 +666,21 @@ I = toricMarkov(A, R)
 peek I.cache -- empty
 peek (gens I).cache
 
+
+loadPackage("allMarkovBases",Reload => true)
+fiberGraph matrix"1,2,3"
+
 -----
 -- big to do:
 -- check documentation [Ollie]
 
 -- little to dos:
 -- 
--- use matrices over vectors [Alex]
--- return the Markov bases as matrices just like "toricMarkov" [Alex]
--- 
 -- markovBases(A, R) ---> list of ideals / generating sets in R (just like toricMarkov)
 -- use 'toBinomial' (from FourTiTwo) to construct the polynomials from matrices
 
 -- in fiberGenerating function replace Gi with a MutableHashTable [Ollie]
 
--- combine the functions for generating fibers and add an otpional parameter: ReturnConnectedComponents
 
 
 
--- wibbly wobbly
