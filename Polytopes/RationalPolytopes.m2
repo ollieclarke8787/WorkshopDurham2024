@@ -162,10 +162,15 @@ Ehrhart (Polyhedron,ZZ):=(P, i) -> (
     )
 
 
-EhrhartQP=method()
-EhrhartQP Polyhedron:=P->(
-    k:=lcm for i in flatten entries vertices P list denominator promote(i,QQ);
-    quasiPolynomial(for i from 0 to k-1 list Ehrhart(P,i))
+EhrhartQP = method()
+EhrhartQP Polyhedron := P -> (
+		if not P#cache#?"EhrhartQP" then (
+				k:=lcm for i in flatten entries vertices P list denominator promote(i,QQ);
+				QP := quasiPolynomial(for i from 0 to k-1 list Ehrhart(P,i));
+				QP#cache#"OriginalPolyhedron" = P;
+				P#cache#"EhrhartQP" = QP;
+				);
+		P#cache#"EhrhartQP"
     )
 
 
@@ -201,7 +206,7 @@ ehrhartSeries(Polyhedron, Ring) := (P, R) -> (
     )
 
 ehrhartSeries Polyhedron := P -> (
-    ehrhartSeries(P, QQ[getSymbol "t"]) 
+    ehrhartSeries(P, QQ[getSymbol "t"])
     )
 
 
@@ -350,7 +355,7 @@ doc ///
     QP : QuasiPolynomial
       A quasipolynomial of which we want to know the coefficients
     i : ZZ
-      The degree of the monomials of QP of which we want to know the coefficients 
+      The degree of the monomials of QP of which we want to know the coefficients
   Outputs
     L : List
       The coefficients of the monomials of degree i appearing in QP
@@ -364,7 +369,7 @@ doc ///
   SeeAlso
     RationalPolytopes
 ///
-  
+
 
 
 -* Test section *-
@@ -405,7 +410,7 @@ end--
 
 
 -- cache the quasi-polynomial in the polyhedron and avoid recomputing the quasi-polynomial if it is already cached
--- note that the Polyhedron type is just a hashtable with a single entry: cache 
+-- note that the Polyhedron type is just a hashtable with a single entry: cache
 
 
 -- check the definition of hStart polynomial in literature and check whether the denominator of the Ehrhart series is:
@@ -651,4 +656,3 @@ doc ///
   SeeAlso
     RationalPolytopes
 ///
-
