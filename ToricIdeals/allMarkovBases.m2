@@ -8,7 +8,7 @@ newPackage(
         {Name => "Oliver Clarke", Email => "oliver.clarke@durham.ac.uk", HomePage => "https://www.oliverclarkemath.com/"}
         },
     AuxiliaryFiles => false,
-    DebuggingMode => false,
+    DebuggingMode => true,
     PackageExports => {"FourTiTwo","Graphs"}
     )
 
@@ -18,6 +18,7 @@ export {
     "markovBases",
     "randomMarkov",
     "NumberOfBases",
+    "AlwaysReturnList",
     "fiberGraph",
     "returnConnectedComponents"
     }
@@ -43,9 +44,6 @@ fiberGraph Matrix := opts -> A -> (
     L := new MutableList;
     Md := new MutableList;
     vales := new MutableList;
-    -- vales as a MutableHashTable (values are the starting elements of the fiber i.e. L)
-    -- to get the list of vales: keys vales
-    --
     for i from 0 to d-1 do(
         temp=for j from 0 to n-1 list(if M_(i,j)>=0 then M_(i,j) else 0);
         val = (A * transpose matrix{temp});
@@ -59,34 +57,37 @@ fiberGraph Matrix := opts -> A -> (
     G := new MutableList;
     for k from 0 to #L - 1 do(
         stk := new MutableList from {L#k#0};
-				Gi := new MutableList from {L#k#0};
-				-- Gi as a MutableHashTable:
-				--  keys: elements of the fiber
-				--  valueso: index in the matrix
-				-- so we can replace: "all(Gi, z-...)" with "Gi#?ck"
-				Gt:=matrix"0";
-				while #stk != 0 do(
-						cur := stk#0;
-						for i from 0 to #Md - 1 do(
-								ck := Md#i + cur;
-								if (all(ck,z -> z>=0) and all(Gi,z -> z!=ck)) then (
-										stk##stk=ck;
-										x:=matrix{for j from 0 to #Gi-1 list(
-														if (not all(ck,Gi#j,(y,z) -> y<=0 or z<=0)) then 1 else 0)};
-										Gt=matrix{{Gt,transpose x},{x,matrix{{0}}}};
-										Gi##Gi=ck;
-										);
+	AM := new MutableHashTable from {L#k#0 => 0};
+	Gt:=matrix"0";
+	fiberSize := 1;
+	while #stk != 0 do(
+	    cur := stk#0;
+	    for i from 0 to #Md - 1 do(
+		ck := Md#i + cur;
+		if (all(ck,z -> z>=0) and not AM#?ck) then (
+		    stk##stk=ck;
+		    x := mutableMatrix(ZZ,1,fiberSize);
+		    for keyVals in pairs AM do(
+			if (not all(ck,keyVals_0,(y,z) -> y<=0 or z<=0)) then x_(0,keyVals_1) = 1
+			);
+		    x = matrix x;
+		    Gt=matrix{{Gt,transpose x},{x,matrix{{0}}}};
+		    AM#ck = fiberSize;
+		    fiberSize = fiberSize + 1
+		    );
                 );
             remove(stk,0);
             );
-        Gindex##Gindex=Gi;
-        G##G=Gt;
-				);
-		if opts.returnConnectedComponents then (
-				for k from 0 to #G - 1 list connectedComponents graph(toList Gindex#k,G#k))
-		else (
-				for k from 0 to #G - 1 list graph(toList Gindex#k,G#k))
-		);
+	revL := new MutableList from toList(numColumns Gt:0);
+	for l in keys AM do revL#(AM#l)=l;
+        Gindex##Gindex=toList revL;
+	G##G=Gt;
+	);
+    if opts.returnConnectedComponents then (
+	for k from 0 to #G - 1 list connectedComponents graph(toList Gindex#k,G#k))
+    else (
+	for k from 0 to #G - 1 list graph(toList Gindex#k,G#k))
+    );
 
 
 
@@ -152,7 +153,8 @@ markovBases(Matrix, Ring) := (A, R) -> (
 
 randomMarkov = method(
     Options => {
-	NumberOfBases => 1
+	NumberOfBases => 1,
+	AlwaysReturnList => false
 	}
     );
 
@@ -169,9 +171,15 @@ randomMarkov Matrix := opts -> A -> (
                 )
             )
         );
-    if opts.NumberOfBases == 1 then result_0 else result
+    if (not opts.AlwaysReturnList and opts.NumberOfBases == 1) then result_0 else result
     );
 
+
+randomMarkov(Matrix, Ring) := opts -> (A, R) -> (
+    listOfBases := randomMarkov(A, NumberOfBases => opts.NumberOfBases, AlwaysReturnList => true);
+    result:=apply(listOfBases, B -> toBinomial(B, R));
+    if (not opts.AlwaysReturnList and opts.NumberOfBases == 1) then result_0 else result
+    );
 
 
 
@@ -194,10 +202,10 @@ doc ///
       A Markov basis is a minimal generating set for of a toric ideal.
       Has uses in Algebraic Statistics [+ref] for sampling
 
-			This package computes the set of all minimal Markov bases of a given toric ideal $I_A$.
-			We do this by using [+ref] FourTiTwo to compute one Markov basis $M$.
-			We then find all spanning forests of the \emph{fiber graph} of $A$ in the \emph{generating fibers}.
-			We then construct the Markov basis associated to each spanning forest.
+      This package computes the set of all minimal Markov bases of a given toric ideal $I_A$.
+      We do this by using [+ref] FourTiTwo to compute one Markov basis $M$.
+      We then find all spanning forests of the \emph{fiber graph} of $A$ in the \emph{generating fibers}.
+      We then construct the Markov basis associated to each spanning forest.
 
     Example
       A = matrix "7,8,9,10"
@@ -230,6 +238,7 @@ doc ///
         }@
 
   Subnodes
+    randomMarkov
 ///
 
 
@@ -303,6 +312,7 @@ doc ///
 	Key
 		markovBases
 		(markovBases, Matrix)
+		(markovBases, Matrix, Ring)
 	Headline
 		every minimal Markov basis of a configuration matrix
 	Usage
@@ -330,20 +340,31 @@ doc ///
 	Key
 		randomMarkov
 		(randomMarkov, Matrix)
+		(randomMarkov, Matrix, Ring)
 		[randomMarkov, NumberOfBases]
+		[randomMarkov, AlwaysReturnList]
 		NumberOfBases
+		AlwaysReturnList
 	Headline
 		random minimal Markov basis
 	Usage
 		B = randomMarkov A
+		C = randomMarkov(A,R)
 	Inputs
 		A : Matrix
 			the configuration matrix
+		R : Ring
+		        ring with 1 generator for each column of A
 		NumberOfBases => ZZ
 			number of Markov bases to return
+		AlwaysReturnList => Boolean
+		        if false and NumberOfBases == 1 then returns as a list of 1 element
 	Outputs
-		B : List
+		B : Matrix
 			a Markov basis of A formatted as a list of vectors
+		C : Ideal
+			an ideal in R generated by a random Markov basis
+		
 	Description
 		Text
 			this method outputs one randomly chosen Markov basis for a given configuration matrix A
@@ -405,19 +426,20 @@ A = matrix {{1,2,3,4,5}}
 R = QQ[x_1 .. x_5]
 I = toricMarkov(A, R)
 I = randomMarkov(A, R)
+I = randomMarkov(A, R, NumberOfBases => 0)
 peek I.cache -- empty
 peek (gens I).cache
 
 
 loadPackage("allMarkovBases",Reload => true)
-fiberGraph matrix"1,2,3"
+fiberGraph matrix "1,2,3"
 
 -----
 -- big to do:
 -- check documentation [Ollie]
 
 -- little to dos:
--- markovBases(A, R) ---> list of ideals / generating sets in R (just like toricMarkov)
--- use 'toBinomial' (from FourTiTwo) to construct the polynomials from matrices
 
--- in fiberGenerating function replace Gi with a MutableHashTable [Ollie]
+-- thinking about methodology that fiberGraph is using in order to reduce the number of mutable objects
+-- come up with other examples (slightly bigger ones)
+
