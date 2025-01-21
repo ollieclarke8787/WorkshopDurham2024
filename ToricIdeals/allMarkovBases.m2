@@ -25,8 +25,6 @@ export {
 -* Code *-
 
 
-
-
 fiberGraph = method(
     Options => {
         returnConnectedComponents => false
@@ -42,7 +40,7 @@ fiberGraph Matrix := opts -> A -> (
     n := numColumns A;
     M := toricMarkov A;
     d := numRows M;
-    L := new MutableList;    
+    L := new MutableList;
     Md := new MutableList;
     vales := new MutableList;
     -- vales as a MutableHashTable (values are the starting elements of the fiber i.e. L)
@@ -61,40 +59,34 @@ fiberGraph Matrix := opts -> A -> (
     G := new MutableList;
     for k from 0 to #L - 1 do(
         stk := new MutableList from {L#k#0};
-        Gi := new MutableList from {L#k#0};
-	-- Gi as a MutableHashTable:
-	--  keys: elements of the fiber
-	--  values: index in the matrix
-	-- so we can replace: "all(Gi, z-...)" with "Gi#?ck" 
-        Gt:=matrix"0";
-        while #stk != 0 do(
-            cur := stk#0;
-            for i from 0 to #Md - 1 do(
-                ck := Md#i + cur;
-                if (all(ck,z -> z>=0) and all(Gi,z -> z!=ck)) then (
-                    stk##stk=ck;
-                    x:=matrix{for j from 0 to #Gi-1 list(
-                        if (not all(ck,Gi#j,(y,z) -> y<=0 or z<=0)) then 1 else 0)};
-                    Gt=matrix{{Gt,transpose x},{x,matrix{{0}}}};
-                    Gi##Gi=ck;
-                    );
+				Gi := new MutableList from {L#k#0};
+				-- Gi as a MutableHashTable:
+				--  keys: elements of the fiber
+				--  valueso: index in the matrix
+				-- so we can replace: "all(Gi, z-...)" with "Gi#?ck"
+				Gt:=matrix"0";
+				while #stk != 0 do(
+						cur := stk#0;
+						for i from 0 to #Md - 1 do(
+								ck := Md#i + cur;
+								if (all(ck,z -> z>=0) and all(Gi,z -> z!=ck)) then (
+										stk##stk=ck;
+										x:=matrix{for j from 0 to #Gi-1 list(
+														if (not all(ck,Gi#j,(y,z) -> y<=0 or z<=0)) then 1 else 0)};
+										Gt=matrix{{Gt,transpose x},{x,matrix{{0}}}};
+										Gi##Gi=ck;
+										);
                 );
             remove(stk,0);
             );
         Gindex##Gindex=Gi;
         G##G=Gt;
-        );
-    if opts.returnConnectedComponents then(
-	result:=for k from 0 to #G - 1 list connectedComponents graph(toList Gindex#k,G#k)
-	) else (
-	result=for k from 0 to #G - 1 list graph(toList Gindex#k,G#k)
-	);
-    result
-    );
-
-
-
-
+				);
+		if opts.returnConnectedComponents then (
+				for k from 0 to #G - 1 list connectedComponents graph(toList Gindex#k,G#k))
+		else (
+				for k from 0 to #G - 1 list graph(toList Gindex#k,G#k))
+		);
 
 
 
@@ -152,6 +144,10 @@ markovBases Matrix := A -> (
     for m in fin list matrix flatten m
     );
 
+markovBases(Matrix, Ring) := (A, R) -> (
+		listOfBases := markovBases(A);
+	  apply(listOfBases, B -> toBinomial(B, R))
+		)
 
 
 randomMarkov = method(
@@ -175,6 +171,8 @@ randomMarkov Matrix := opts -> A -> (
         );
     if opts.NumberOfBases == 1 then result_0 else result
     );
+
+
 
 
 
@@ -232,7 +230,6 @@ doc ///
         }@
 
   Subnodes
-    randomMarkov
 ///
 
 
@@ -407,6 +404,7 @@ elapsedTime pruferSequence(8);
 A = matrix {{1,2,3,4,5}}
 R = QQ[x_1 .. x_5]
 I = toricMarkov(A, R)
+I = randomMarkov(A, R)
 peek I.cache -- empty
 peek (gens I).cache
 
@@ -423,4 +421,3 @@ fiberGraph matrix"1,2,3"
 -- use 'toBinomial' (from FourTiTwo) to construct the polynomials from matrices
 
 -- in fiberGenerating function replace Gi with a MutableHashTable [Ollie]
-
