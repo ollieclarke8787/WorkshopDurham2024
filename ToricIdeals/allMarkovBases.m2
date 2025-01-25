@@ -13,14 +13,13 @@ newPackage(
     )
 
 export {
-    "fiberGraphGenerator",
     "pruferSequence",
     "markovBases",
     "randomMarkov",
     "NumberOfBases",
     "AlwaysReturnList",
     "fiberGraph",
-    "returnConnectedComponents"
+    "ReturnConnectedComponents"
     }
 
 -* Code *-
@@ -28,125 +27,113 @@ export {
 
 fiberGraph = method(
     Options => {
-        returnConnectedComponents => false
+        ReturnConnectedComponents => false
 	}
     );
 
-fiberGraph Matrix := opts -> A -> (
-    local val;
-    local stk;
-    local temp;
-    local ck;
-    local cur;
-    n := numColumns A;
-    M := toricMarkov A;
-    d := numRows M;
-    L := new MutableList;
-    Md := new MutableList;
-    vales := new MutableList;
-    for i from 0 to d-1 do(
-        temp=for j from 0 to n-1 list(if M_(i,j)>=0 then M_(i,j) else 0);
-        val = (A * transpose matrix{temp});
-        if all(vales,z -> z!=val) then L##L={temp,val};
-        vales##vales=val;
-	Mdel := flatten entries M^{i};
-        Md##Md = Mdel;
-        Md##Md = - Mdel;
+fiberGraph Matrix := opts -> adjacencyMatrix -> (
+    n := numColumns adjacencyMatrix;
+    starterMarkovBasis := toricMarkov adjacencyMatrix;
+    fiberStarters := new MutableHashTable;
+    possibleMoves := new MutableList;
+    for i from 0 to numRows starterMarkovBasis - 1 do(
+        starterFiberElement := for j from 0 to n-1 list(if starterMarkovBasis_(i,j)>=0 then starterMarkovBasis_(i,j) else 0);
+        fiberValue := adjacencyMatrix * transpose matrix{starterFiberElement};
+        if not fiberStarters#?fiberValue then fiberStarters#fiberValue = starterFiberElement;
+	validMove := flatten entries starterMarkovBasis^{i};
+        possibleMoves##possibleMoves = validMove;
+        possibleMoves##possibleMoves = - validMove;
         );
-    Gindex := new MutableList;
-    G := new MutableList;
-    for k from 0 to #L - 1 do(
-        stk := new MutableList from {L#k#0};
-	AM := new MutableHashTable from {L#k#0 => 0};
-	Gt:=matrix"0";
+    fibers := new MutableList;
+    for starterFiberElement in values fiberStarters do(
+        queueOfFiberElements := new MutableList from {starterFiberElement};
+	adjacencyMatrixIndex := new MutableHashTable from {starterFiberElement => 0};
+	adjacencyMatrix := matrix("0");
 	fiberSize := 1;
-	while #stk != 0 do(
-	    cur := stk#0;
-	    for i from 0 to #Md - 1 do(
-		ck := Md#i + cur;
-		if (all(ck,z -> z>=0) and not AM#?ck) then (
-		    stk##stk=ck;
-		    x := mutableMatrix(ZZ,1,fiberSize);
-		    for keyVals in pairs AM do(
-			if (not all(ck,keyVals_0,(y,z) -> y<=0 or z<=0)) then x_(0,keyVals_1) = 1
+	while #queueOfFiberElements != 0 do(
+	    currentFiberElement := queueOfFiberElements#0;
+	    for move in possibleMoves do(
+		testFiberElement := move + currentFiberElement;
+		if (all(testFiberElement, z -> z>=0) and not adjacencyMatrixIndex#?testFiberElement) then (
+		    queueOfFiberElements##queueOfFiberElements=testFiberElement;
+		    intersectionIndex := mutableMatrix(ZZ,1,fiberSize);
+		    for keyVals in pairs adjacencyMatrixIndex do(
+			if (not all(testFiberElement, keyVals_0,(y,z) -> y<=0 or z<=0)) then (
+			    intersectionIndex_(0,keyVals_1) = 1
+			    );
 			);
-		    x = matrix x;
-		    Gt=matrix{{Gt,transpose x},{x,matrix{{0}}}};
-		    AM#ck = fiberSize;
+		    intersectionIndex = matrix intersectionIndex;
+		    adjacencyMatrix = matrix{{adjacencyMatrix, transpose intersectionIndex}, {intersectionIndex, matrix{{0}}}};
+		    adjacencyMatrixIndex#testFiberElement = fiberSize;
 		    fiberSize = fiberSize + 1
 		    );
                 );
-            remove(stk,0);
+            remove(queueOfFiberElements,0);
             );
-	revL := new MutableList from toList(numColumns Gt:0);
-	for l in keys AM do revL#(AM#l)=l;
-        Gindex##Gindex=toList revL;
-	G##G=Gt;
+	orderedAdjacencyMatrixIndex := new MutableList from toList(numColumns adjacencyMatrix:0);
+	for l in keys adjacencyMatrixIndex do orderedAdjacencyMatrixIndex#(adjacencyMatrixIndex#l)=l;
+	fibers##fibers=graph(toList orderedAdjacencyMatrixIndex, adjacencyMatrix);
 	);
-    if opts.returnConnectedComponents then (
-	for k from 0 to #G - 1 list connectedComponents graph(toList Gindex#k,G#k))
-    else (
-	for k from 0 to #G - 1 list graph(toList Gindex#k,G#k))
+    fibers = toList fibers;
+    if opts.ReturnConnectedComponents then apply(fibers, connectedComponents)
+    else fibers
     );
 
 
 
 
--- edge list of spanning tree corresponding to L
+
 pruferSequence = method();
-pruferSequence List := L ->(
-    local n;
-    local cg;
-    local deg;
-    n = #L + 2;
-    cg = new MutableList; -- list of edges
-    deg = new MutableList from toList(n : 1); -- degrees of vertices
-    for j in L do(
-	deg#j = deg#j + 1;
+pruferSequence List := pruferList -> (
+    numberOfNodes := #pruferList + 2;
+    edgeList := new MutableList; 
+    nodeDegrees := new MutableList from toList(numberOfNodes : 1);
+    for j in pruferList do(
+	nodeDegrees#j = nodeDegrees#j + 1;
         );
-    for j in L do(
-        for l from 0 to n-1 do(
-            if deg#l == 1 then(
-		cg##cg = set {l,j};
-		deg#j = deg#j -1;
-		deg#l = deg#l -1;
+    for j in pruferList do(
+        for node from 0 to numberOfNodes - 1 do(
+            if nodeDegrees#node == 1 then(
+		edgeList##edgeList = set {node, j};
+		nodeDegrees#j = nodeDegrees#j - 1;
+		nodeDegrees#node = nodeDegrees#node - 1;
                 break;
                 );
             );
         );
-    cg##cg = set positions(deg,x -> x==1);
-    toList cg
+    edgeList##edgeList = set positions(nodeDegrees, x -> x==1);
+    toList edgeList
     );
 
 
 -- direct product of lists (unexported)
 listProd = method();
-listProd List := Ls -> (
-    fold((pr, ad) -> flatten for i in pr list for el in ad list append(i, el),
+listProd List := lists -> (
+    fold((combinedLists, listToBeAdded) -> flatten for combinedElement in combinedLists list for newElement in listToBeAdded list append(combinedElement, newElement),
 	{{}},
-	Ls)
+	lists)
     );
 
 
 markovBases = method();
-markovBases Matrix := A -> (
-    cc := fiberGraph(A,returnConnectedComponents =>true);
-    poss:=for k from 0 to #cc-1 list(
-        for i in listProd splice {#cc#k-2 : toList(0..#cc#k-1)} list pruferSequence i
+markovBases Matrix := adjacencyMatrix -> (
+    allFibersConnectedComponents := fiberGraph(adjacencyMatrix, ReturnConnectedComponents => true);
+    allFibersSpanningTrees := for fiberConnectedComponents in allFibersConnectedComponents list(
+        for pruferList in listProd splice {#fiberConnectedComponents - 2 : toList(0..#fiberConnectedComponents-1)} list pruferSequence pruferList
         );
-    fin:=listProd for k from 0 to #poss-1 list(
-        flatten for i from 0 to #poss#k-1 list(
-            listProd for j from 0 to #poss#k#i-1 list(
-                x:=listProd for l in keys poss#k#i#j list cc#k#l;
-                for w in x list w#0-w#1
+    markovBasesAsLists := listProd for k from 0 to #allFibersSpanningTrees-1 list(
+        flatten for spanningTree in allFibersSpanningTrees#k list(
+            listProd for edge in spanningTree list(
+                pairsOfFiberElements := listProd for l in keys edge list allFibersConnectedComponents#k#l;
+                for pair in pairsOfFiberElements list pair#0-pair#1
                 )
             )
         );
-    for m in fin list matrix flatten m
+    for markovBasisAsList in markovBasesAsLists list matrix flatten markovBasisAsList
     );
 
-markovBases(Matrix, Ring) := (A, R) -> (
-		listOfBases := markovBases(A);
+markovBases(Matrix, Ring) := (adjacencyMatrix, R) -> (
+		listOfBases := markovBases(adjacencyMatrix);
 	  apply(listOfBases, B -> toBinomial(B, R))
 		)
 
@@ -158,27 +145,27 @@ randomMarkov = method(
 	}
     );
 
-randomMarkov Matrix := opts -> A -> (
-    cc := fiberGraph(A,returnConnectedComponents =>true);
-    result := for i from 0 to opts.NumberOfBases - 1 list(
-        poss:=for k from 0 to #cc-1 list(
-            pruferSequence for j from 0 to #cc#k-3 list random length cc#k
+randomMarkov Matrix := opts -> adjacencyMatrix -> (
+    allFibersConnectedComponents := fiberGraph(adjacencyMatrix, ReturnConnectedComponents =>true);
+    randomMarkovBases := for i from 0 to opts.NumberOfBases - 1 list(
+        allFibersRandomSpanningTree := for fiberConnectedComponents in allFibersConnectedComponents list(
+            pruferSequence for j from 1 to #fiberConnectedComponents-2 list random(#fiberConnectedComponents)
             );
-        matrix flatten for k from 0 to #poss-1 list(
-            for j from 0 to #poss#k-1 list(
-                w:=for l in keys poss#k#j list cc#k#l#(random length cc#k#l);
-                w#0-w#1
+        matrix flatten for k from 0 to #allFibersRandomSpanningTree-1 list(
+            for edge in allFibersRandomSpanningTree#k list(
+                randomPairOfFiberElements := for l in keys edge list allFibersConnectedComponents#k#l#(random(#allFibersConnectedComponents#k#l));
+                randomPairOfFiberElements#0-randomPairOfFiberElements#1
                 )
             )
         );
-    if (not opts.AlwaysReturnList and opts.NumberOfBases == 1) then result_0 else result
+    if (not opts.AlwaysReturnList and opts.NumberOfBases == 1) then randomMarkovBases_0 else randomMarkovBases
     );
 
 
-randomMarkov(Matrix, Ring) := opts -> (A, R) -> (
-    listOfBases := randomMarkov(A, NumberOfBases => opts.NumberOfBases, AlwaysReturnList => true);
-    result:=apply(listOfBases, B -> toBinomial(B, R));
-    if (not opts.AlwaysReturnList and opts.NumberOfBases == 1) then result_0 else result
+randomMarkov(Matrix, Ring) := opts -> (adjacencyMatrix, R) -> (
+    listOfBases := randomMarkov(adjacencyMatrix, NumberOfBases => opts.NumberOfBases, AlwaysReturnList => true);
+    listOfIdeals := apply(listOfBases, B -> toBinomial(B, R));
+    if (not opts.AlwaysReturnList and opts.NumberOfBases == 1) then listOfIdeals_0 else listOfIdeals
     );
 
 
@@ -246,7 +233,7 @@ doc ///
 	Key
 		fiberGraph
 		(fiberGraph, Matrix)
-		[fiberGraph, returnConnectedComponents]
+		[fiberGraph, ReturnConnectedComponents]
 	Headline
 		the relevant fibers of a configuration matrix as graphs
 	Usage
@@ -254,7 +241,7 @@ doc ///
 	Inputs
 		A : Matrix
 			the configuration matrix
-		returnConnectedComponents => Boolean
+		ReturnConnectedComponents => Boolean
 			when true fiberGraph returns a list of connected components of each fiber instead of the whole graphs
 	Outputs
 		G : List
@@ -264,11 +251,11 @@ doc ///
 			Constructs the relevant fibers of a configuration matrix $A$ using a recursive algorithm.
 			The fibres are returned as a list of graphs where two vectors in a fiber are adjacent if their
 			supports have non-trivial intersection.
-			When returnConnectedComponents is true, instead of returning a list of graphs, fiberGraph returns a list of the connected components of each fiber.
+			When ReturnConnectedComponents is true, instead of returning a list of graphs, fiberGraph returns a list of the connected components of each fiber.
 		Example
 			fiberGraph matrix "3,4,5"
 			fiberGraph matrix "1,2,3"
-			fiberGraph(matrix "1,2,3", returnConnectedComponents => true)
+			fiberGraph(matrix "1,2,3", ReturnConnectedComponents => true)
 			fiberGraph matrix "1,2,3,4"
 	SeeAlso
 		markovBases
@@ -308,7 +295,7 @@ doc ///
 	--    EM "Arch. Math. Phys. 27: 742–744."}
     --    }@
 	Subnodes
-		fiberGraphGenerator
+		fiberGraph
 		markovBases
 		pruferSequence
 ///
