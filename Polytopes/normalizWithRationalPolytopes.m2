@@ -33,7 +33,8 @@ doWriteNmzData List := matrices -> (
 	outf << nmzMode << endl);
     outf << close)
 
-
+-- The following function doesn't need to be redefined necessarily;
+-- this version does not delete temporary files (may be useful for debugging)
 runNormaliz = method(Options => options normaliz)
 runNormaliz(Matrix, String) := opts -> (sgr, nmzMode) -> runNormaliz({(sgr, nmzMode)}, opts)
 runNormaliz List := opts -> s -> (
@@ -83,3 +84,5 @@ M=transpose matrix "1/2, -1/3, 1/4; 1/2, -1/3, -1/2"
 M=transpose matrix "1, -1/3, 1/4; 1/2, -1/3, -2/2"
 (normaliz(M,"polytope"))#"gen"
 
+M = matrix "1,0;-1,0;0,1/20;-1,11/20"
+elapsedTime (normaliz(M,"polytope"))
