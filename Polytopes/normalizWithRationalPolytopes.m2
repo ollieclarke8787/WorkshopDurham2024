@@ -20,14 +20,14 @@ doWriteNmzData List := matrices -> (
 	--
 
 	if ring sgr =!= ZZ and ring sgr =!= QQ then error("matrix with non-rational entries");
-	
+
 	for i from 0 to numRows sgr - 1 do (
 	    s := "";
 	    for j from 0 to numColumns sgr - 1
 	    do s = s | toString(sgr_(i,j)) | " "; -- this handles ZZ and QQ entries
 	    outf << s << endl;
 	    );
-	    
+
 	-- Until version 3.9.4, input type normal_toric_ideal was called lattice_ideal
 	if normalizProgram#"version" < "3.10" and nmzMode == "normal_toric_ideal" then nmzMode = "lattice_ideal";
 	outf << nmzMode << endl);
@@ -39,7 +39,7 @@ runNormaliz = method(Options => options normaliz)
 runNormaliz(Matrix, String) := opts -> (sgr, nmzMode) -> runNormaliz({(sgr, nmzMode)}, opts)
 runNormaliz List := opts -> s -> (
     print opts;
-    
+
     setNmzFile();
 
     if 0 < #opts.grading then s = append(s, (matrix {opts.grading}, "grading"));
@@ -75,11 +75,30 @@ runNormaliz List := opts -> s -> (
     C)
 
 
+end
+
+restart
+load "normalizWithRationalPolytopes.m2"
+
 M = matrix {{1,5}}
 (runNormaliz(M,"polytope"))#"gen"
 
 M=transpose matrix "1/2, -1/3, 1/4; 1/2, -1/3, -1/2"
-(normaliz(M,"polytope"))
+C = (normaliz(M,"polytope"))
+
+needsPackage "RationalPolytopes"
+P = convexHull transpose M
+H = ehrhartSeries P
+
+denom = C#"inv"#"hilbert series denom"
+use ring H
+D = product for i in denom list (1-t^i)
+ring D === ring H
+
+D*H
+C#"inv"#"hilbert series num"
+
+
 
 M=transpose matrix "1, -1/3, 1/4; 1/2, -1/3, -2/2"
 (normaliz(M,"polytope"))#"gen"

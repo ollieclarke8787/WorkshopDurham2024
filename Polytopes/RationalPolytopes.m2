@@ -12,7 +12,7 @@ newPackage(
 	},
     AuxiliaryFiles => false,
     DebuggingMode => false,
-    PackageExports => {"Polyhedra"}
+    PackageExports => {"Polyhedra", "Normaliz"}
     )
 
 export {
@@ -27,7 +27,8 @@ export {
     "periodQP",
     "coefficientMonomial",
     "ehrhartSeries",
-    "ReturnDenominator"
+    "ReturnDenominator",
+		"Backend"
     }
 
 -* QuasiPolynomial Type *-
@@ -174,43 +175,126 @@ EhrhartQP Polyhedron := P -> (
     )
 
 
+-- hStar currently uses M2 code to compute
+-- maybe we should add a Normaliz version too
 hStar = method(
-    Options => {
-	ReturnDenominator => false --returns a pair of polys (h, d) s.t. Ehrhart series is h/d
-	})
+		Options => {
+				ReturnDenominator => false, --returns a pair of polys (h, d) s.t. Ehrhart series is h/d
+				Backend => "Normaliz" -- either Normaliz or M2
+				})
 
-hStar(Polyhedron , Ring) := opts -> (P, R) -> (
-    n:=dim P;
-    dnom := lcm for i in flatten entries vertices P list denominator promote(i,QQ);
-    p:=1;
-    t:=R_0;
-    for i from 1 to (n+1)*dnom do (p=p + #latticePoints(i*P) * t^i);
-    r:=(1-t^dnom)^(n+1);
-    f := (p*r) % t^((n+1)*dnom);
-    if opts.ReturnDenominator then (f, r) else f
-  )
+hStar(Polyhedron, Ring) := opts -> (P, R) -> (
+		if not P#cache#?"EhrhartSeriesNumerator" then (
+				if opts.Backend == "M2" then (
+						hStarM2(P, R);
+						)
+				else if opts.Backend == "Normaliz" then (
+						hStarNormaliz(P, R);
+						)
+				else error("unknown Backend option: " | toString opts.Backend);
+				);
+		if opts.ReturnDenominator then (
+				P#cache#"EhrhartSeriesNumerator",
+				P#cache#"EhrhartSeriesDenominator"
+				)
+		else P#cache#"EhrhartSeriesNumerator"
+		)
 
 hStar(Polyhedron) := opts -> P -> (
-  R:=QQ[getSymbol "t"];
-  hStar(P, R, opts)
-  )
+		R:=QQ[getSymbol "t"]; -- potentially redundant if hStar has already been computed
+		hStar(P, R, opts)
+		)
+
+-- M2 version of hStar polynomial
+-- once computed, it updates the cache
+hStarM2 = method()
+hStarM2(Polyhedron, Ring) := (P, R) -> (
+		n:=dim P;
+		dnom := lcm for i in flatten entries vertices P list denominator promote(i,QQ);
+		p:=1;
+		t:=R_0;
+		for i from 1 to (n+1)*dnom do (p=p + #latticePoints(i*P) * t^i);
+		r:=(1-t^dnom)^(n+1);
+		f := (p*r) % t^((n+1)*dnom);
+		P#cache#"EhrhartSeriesNumerator" = f;
+		P#cache#"EhrhartSeriesDenominator" = r;
+		(f, r)
+		)
 
 
-ehrhartSeries = method()
-ehrhartSeries(Polyhedron, Ring) := (P, R) -> (
-    (h, d) := hStar(P, R, ReturnDenominator => true);
-    F := frac R;
-    h = h_F;
-    d = d_F;
-    h/d
+-- Normaliz version of hStar polynomial
+-- once computed, it updates the cache
+
+-- WARNING: the denominator of the hstar might not be the usual one!
+hStarNormaliz = method()
+hStarNormaliz(Polyhedron, Ring) := (P, R) -> (
+		t := R_0;
+		C := normaliz(transpose vertices P, "polytope");
+		numeratorCoefficients := C#"inv"#"hilbert series num";
+		denominatorFactors := C#"inv"#"hilbert series denom";
+		f := sum for i from 0 to #numeratorCoefficients -1 list (numeratorCoefficients#i) * t^i;
+		r := product for i from 0 to #denominatorFactors -1 list 1 - t^(denominatorFactors#i);
+		P#cache#"EhrhartSeriesNumerator" = f;
+		P#cache#"EhrhartSeriesDenominator" = r;
+		(f, r)
+		)
+
+
+ehrhartSeries = method(
+		Options => {
+				Backend => "Normaliz" -- Normaliz or M2
+				}
+		)
+
+ehrhartSeries(Polyhedron, Ring) := opts -> (P, R) -> (
+		if not P#cache#?"EhrhartSeries" then (
+				(h, d) := hStar(P, R, ReturnDenominator => true, Backend => opts.Backend);
+				R' := ring h; -- if R' =!= R then we previously constructed R' so we should ignore R
+				F := frac R';
+				h = h_F;
+				d = d_F;
+				P#cache#"EhrhartSeries" = h/d;
+				);
+		P#cache#"EhrhartSeries"
+		)
+
+ehrhartSeries Polyhedron := opts -> P -> (
+    ehrhartSeries(P, QQ[getSymbol "t"], opts)
     )
 
-ehrhartSeries Polyhedron := P -> (
-    ehrhartSeries(P, QQ[getSymbol "t"])
-    )
+---------------------------------------
+---------------------------------------
+-- Temporary version of Normaliz
+-- to use with computing rational polytopes
+--------------------------------------
 
+debug Normaliz
 
+-- writes the given data in a normaliz input file
+doWriteNmzData = method()
+-- writes several matrices in a normaliz input file
+doWriteNmzData List := matrices -> (
+		checkNmzFile("doWriteNmzData");
+		outf := nmzFile | ".in" << "";
+		for p in matrices do (
+				sgr := p#0;
+				nmzMode := p#1;
+				outf << numRows sgr << endl;
+				outf << numColumns sgr << endl;
+				if ring sgr =!= ZZ and ring sgr =!= QQ then error("matrix with non-rational entries");
+				for i from 0 to numRows sgr - 1 do (
+						s:= "";
+						for j from 0 to numColumns sgr - 1
+						do s = s | toString(sgr_(i,j)) | " "; -- MODIFIED: this handles ZZ and QQ entries
+						outf << s << endl;
+						);
+				--Until version 3.9.4, input type normal_toric_ideal was called lattice_ideal
+				if normalizProgram#"version" < "3.10" and nmzMode == "normal_toric_ideal" then nmzMode = "lattice_ideal";
+				outf << nmzMode << endl);
+		outf << close
+		)
 
+---------------------------------------
 -* Documentation section *-
 beginDocumentation()
 
@@ -656,3 +740,11 @@ doc ///
   SeeAlso
     RationalPolytopes
 ///
+
+
+-----------------------------
+P = convexHull transpose matrix "1,0;-1,0;0,1/20;-1,11/20"
+EhrhartQP(P)
+
+hStar P
+ehrhartSeries P
