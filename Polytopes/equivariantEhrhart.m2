@@ -311,7 +311,22 @@ P = hypersimplex(6, 2)
 S5 = symmetricGroup(5);
 C = conjugacyClasses(S5, ListRepsOnly => true)
 
-netList elapsedTime equivariantEhrhartSeries hypersimplex(8, 4);
+netList elapsedTime equivariantEhrhartSeries hypersimplex(6, 3);
 elapsedTime equivariantEhrhartSeries hypersimplex(9, 2);
 
 equivariantEhrhartSeries permutohedron 4
+
+
+
+restart
+load "equivariantEhrhart.m2"
+
+P = convexHull transpose matrix {
+		{1,1,0,0,1},
+		{1,1,1,0,0},
+		{0,1,1,1,0},
+		{0,0,1,1,1},
+		{1,0,0,1,1}
+		}
+
+netList elapsedTime equivariantEhrhartSeries P
