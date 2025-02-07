@@ -31,14 +31,14 @@ fiberGraph = method(
 	}
     );
 
-fiberGraph Matrix := opts -> adjacencyMatrix -> (
-    n := numColumns adjacencyMatrix;
-    starterMarkovBasis := toricMarkov adjacencyMatrix;
+fiberGraph Matrix := opts -> A -> (
+    n := numColumns A;
+    starterMarkovBasis := toricMarkov A;
     fiberStarters := new MutableHashTable;
     possibleMoves := new MutableList;
     for i from 0 to numRows starterMarkovBasis - 1 do(
         starterFiberElement := for j from 0 to n-1 list(if starterMarkovBasis_(i,j)>=0 then starterMarkovBasis_(i,j) else 0);
-        fiberValue := adjacencyMatrix * transpose matrix{starterFiberElement};
+        fiberValue := A * transpose matrix{starterFiberElement};
         if not fiberStarters#?fiberValue then fiberStarters#fiberValue = starterFiberElement;
 	validMove := flatten entries starterMarkovBasis^{i};
         possibleMoves##possibleMoves = validMove;
@@ -84,14 +84,14 @@ fiberGraph Matrix := opts -> adjacencyMatrix -> (
 
 
 pruferSequence = method();
-pruferSequence List := pruferList -> (
-    numberOfNodes := #pruferList + 2;
+pruferSequence List := L -> (
+    numberOfNodes := #L + 2;
     edgeList := new MutableList; 
     nodeDegrees := new MutableList from toList(numberOfNodes : 1);
-    for j in pruferList do(
+    for j in L do(
 	nodeDegrees#j = nodeDegrees#j + 1;
         );
-    for j in pruferList do(
+    for j in L do(
         for node from 0 to numberOfNodes - 1 do(
             if nodeDegrees#node == 1 then(
 		edgeList##edgeList = set {node, j};
@@ -108,16 +108,16 @@ pruferSequence List := pruferList -> (
 
 -- direct product of lists (unexported)
 listProd = method();
-listProd List := lists -> (
+listProd List := L -> (
     fold((combinedLists, listToBeAdded) -> flatten for combinedElement in combinedLists list for newElement in listToBeAdded list append(combinedElement, newElement),
 	{{}},
-	lists)
+	L)
     );
 
 
 markovBases = method();
-markovBases Matrix := adjacencyMatrix -> (
-    allFibersConnectedComponents := fiberGraph(adjacencyMatrix, ReturnConnectedComponents => true);
+markovBases Matrix := A -> (
+    allFibersConnectedComponents := fiberGraph(A, ReturnConnectedComponents => true);
     allFibersSpanningTrees := for fiberConnectedComponents in allFibersConnectedComponents list(
         for pruferList in listProd splice {#fiberConnectedComponents - 2 : toList(0..#fiberConnectedComponents-1)} list pruferSequence pruferList
         );
@@ -132,8 +132,8 @@ markovBases Matrix := adjacencyMatrix -> (
     for markovBasisAsList in markovBasesAsLists list matrix flatten markovBasisAsList
     );
 
-markovBases(Matrix, Ring) := (adjacencyMatrix, R) -> (
-		listOfBases := markovBases(adjacencyMatrix);
+markovBases(Matrix, Ring) := (A, R) -> (
+		listOfBases := markovBases(A);
 	  apply(listOfBases, B -> toBinomial(B, R))
 		)
 
@@ -145,8 +145,8 @@ randomMarkov = method(
 	}
     );
 
-randomMarkov Matrix := opts -> adjacencyMatrix -> (
-    allFibersConnectedComponents := fiberGraph(adjacencyMatrix, ReturnConnectedComponents =>true);
+randomMarkov Matrix := opts -> A -> (
+    allFibersConnectedComponents := fiberGraph(A, ReturnConnectedComponents =>true);
     randomMarkovBases := for i from 0 to opts.NumberOfBases - 1 list(
         allFibersRandomSpanningTree := for fiberConnectedComponents in allFibersConnectedComponents list(
             pruferSequence for j from 1 to #fiberConnectedComponents-2 list random(#fiberConnectedComponents)
@@ -162,8 +162,8 @@ randomMarkov Matrix := opts -> adjacencyMatrix -> (
     );
 
 
-randomMarkov(Matrix, Ring) := opts -> (adjacencyMatrix, R) -> (
-    listOfBases := randomMarkov(adjacencyMatrix, NumberOfBases => opts.NumberOfBases, AlwaysReturnList => true);
+randomMarkov(Matrix, Ring) := opts -> (A, R) -> (
+    listOfBases := randomMarkov(A, NumberOfBases => opts.NumberOfBases, AlwaysReturnList => true);
     listOfIdeals := apply(listOfBases, B -> toBinomial(B, R));
     if (not opts.AlwaysReturnList and opts.NumberOfBases == 1) then listOfIdeals_0 else listOfIdeals
     );
@@ -390,25 +390,25 @@ doc ///
 -* Test section *-
 
 TEST /// -- unique minimal Markov basis for monomial curve in A^3
-assert(markovBases matrix "3,4,5" == {toricMarkov matrix "3,4,5"})
+assert(set entries (markovBases matrix "3,4,5")_0 == set entries toricMarkov matrix "3,4,5")
 ///
 
 TEST /// -- two minimal Markov bases for (CI) monomial curve in A^3
-assert(markovBases matrix "1,2,3" == {matrix {{2,-1,0},{3,0,-1}},matrix {{2,-1,0},{1,1,-1}}})
+assert(set apply(markovBases matrix "1,2,3", A -> set entries A) == set {set {{2,-1,0},{3,0,-1}}, set {{2,-1,0},{1,1,-1}}})
 ///
 
 TEST /// -- hypersurface in A^3
-assert(markovBases matrix "1,2,3;4,5,6" == {matrix {{1,-2,1}}})
+assert(set entries (markovBases matrix "1,2,3;4,5,6")_0 == set {{1,-2,1}})
 ///
 
 TEST /// -- monomial curve in A^5 with five minimal Markov bases
 result := {
-    matrix {{5, -2, 0},{20, 0, -1}},
-    matrix {{5, -2, 0},{15, 2, -1}},
-    matrix {{5, -2, 0},{10, 4, -1}},
-    matrix {{5, -2, 0},{5, 6, -1}},
-    matrix {{5, -2, 0},{0, 8, -1}}};
-assert(markovBases matrix "2,5,40" == result)
+    {{5, -2, 0},{20, 0, -1}},
+    {{5, -2, 0},{15, 2, -1}},
+    {{5, -2, 0},{10, 4, -1}},
+    {{5, -2, 0},{5, 6, -1}},
+    {{5, -2, 0},{0, 8, -1}}};
+assert(set apply(markovBases matrix "2,5,40", A -> set entries A) == set apply(result,set))
 ///
 
 
@@ -447,17 +447,6 @@ fiberGraph matrix "1,2,3"
 -- check documentation [Ollie]
 
 -- little to dos:
-
--- thinking about methodology that fiberGraph is using in order to reduce the number of mutable objects
 -- come up with other examples (slightly bigger ones)
 
-
-
-
-
-
-
---Thoughts:
-
---I think we are always producing minimal Markov Bases so every time we say "Markov bases" in the documentation maybe we should add minimal in front?
 
