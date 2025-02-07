@@ -33,7 +33,7 @@ isSymmetric(Polyhedron, Matrix) := (P, M) -> (
 
 isSymmetric(Polyhedron, List) := (P, L) -> (
     result := true;
-    for M in L do if not isSymmetric(P, M) then (result = false; break); 
+    for M in L do if not isSymmetric(P, M) then (result = false; break);
     result
     )
 
@@ -93,13 +93,13 @@ conjugacyClasses List := opts -> G -> (
 	    if opts.Verbose then (
 		print("new class: " | net g);
 		print("");
-		);	  
+		);
 	    isClassified#g = true;
 	    conjClass := new MutableHashTable from {g => true};
 	    for h in G do (
 		hgh := h * g * h^(-1);
 		numConjugations = numConjugations + 1;
-		if not conjClass#?hgh then (isClassified#hgh = true; conjClass#hgh = true); 
+		if not conjClass#?hgh then (isClassified#hgh = true; conjClass#hgh = true);
 		);
 	    if opts.ListRepsOnly then g else keys conjClass
 	    )
@@ -107,7 +107,7 @@ conjugacyClasses List := opts -> G -> (
     if opts.Verbose then (
 	print("-- completed in " | toString numConjugations | " conjugations");
 	);
-    result 
+    result
     )
 
 
@@ -190,36 +190,36 @@ equivariantEhrhartSeries = method(
 	ReturnHStarList => true
 	})
 equivariantEhrhartSeries Polyhedron := opts -> P -> (
-    n := numRows vertices P;
-    -- check P invariant under Sn
-    g1 := permutationMatrix(toList(1 .. n-1) | {0}); -- n cycle
-    g2 := permutationMatrix({1,0} | toList(2 .. n-1)); -- transposition
-    if not (isSymmetric(P, g1) and isSymmetric(P, g2)) then error("polytope is not Sn invariant");
-    conjClassRepMats := snConjugacyClassReps n;
-    fixedPolytopeList := (g -> fixedPolytope(P, g)) \ conjClassRepMats;
-    (R, T) := repRing(n, ReturnTable => true);
-    m := numgens R; -- equals number of conj classes
-    Rt := R[getSymbol "t"];
-    t := Rt_0;
-    hStarList := (Pg -> hStar(Pg, Rt, ReturnDenominator => true)) \ fixedPolytopeList;
-    ehrhartHStarList := for i from 0 to m-1 list (
-	g := sub(conjClassRepMats_i, Rt);
-	detRep := det(id_(Rt^n) - t*g);
-	(hStarNum, hStarDenom) := hStarList_i;
-	if not zero((hStarNum * detRep) % hStarDenom) then (
-	    print "bad symmetry:";
-	    print g;
-	    error("equivariant hStar not polynomial");
-	    );
-	(hStarNum * detRep) // hStarDenom
-	); -- list of Ehrhart H* polynomials note that denominator is det(I - tg)
-    H := (matrix {ehrhartHStarList} * (inverse T) * transpose matrix {gens R})_(0,0);
-    result := {H};
-    if opts.ReturnTable then result = result | {T};
-    if opts.ReturnPartitionList then result = result | {toList \ partitions n};
-    if opts.ReturnHStarList then result = result | {ehrhartHStarList};
-    result
-    )
+		n := numRows vertices P;
+		-- check P invariant under Sn
+		g1 := permutationMatrix(toList(1 .. n-1) | {0}); -- n cycle
+		g2 := permutationMatrix({1,0} | toList(2 .. n-1)); -- transposition
+		if not (isSymmetric(P, g1) and isSymmetric(P, g2)) then error("polytope is not Sn invariant");
+		conjClassRepMats := snConjugacyClassReps n;
+		fixedPolytopeList := (g -> fixedPolytope(P, g)) \ conjClassRepMats;
+		(R, T) := repRing(n, ReturnTable => true);
+		m := numgens R; -- equals number of conj classes
+		Rt := R[getSymbol "t"];
+		t := Rt_0;
+		hStarList := (Pg -> hStar(Pg, Rt, ReturnDenominator => true)) \ fixedPolytopeList;
+		ehrhartHStarList := for i from 0 to m-1 list (
+				g := sub(conjClassRepMats_i, Rt);
+				detRep := det(id_(Rt^n) - t*g);
+				(hStarNum, hStarDenom) := hStarList_i;
+				if not zero((hStarNum * detRep) % hStarDenom) then (
+						print "bad symmetry:";
+						print g;
+						error("equivariant hStar not polynomial");
+						);
+				(hStarNum * detRep) // hStarDenom
+				); -- list of Ehrhart H* polynomials note that denominator is det(I - tg)
+		H := (matrix {ehrhartHStarList} * (inverse T) * transpose matrix {gens R})_(0,0);
+		result := {H};
+		if opts.ReturnTable then result = result | {T};
+		if opts.ReturnPartitionList then result = result | {toList \ partitions n};
+		if opts.ReturnHStarList then result = result | {ehrhartHStarList};
+		result
+		)
 
 
 -- obit polytope under Sn
@@ -302,3 +302,31 @@ A = QQ[x]
 B = frac A[t]
 1/(B_0)
 --------------------
+
+restart
+load "equivariantEhrhart.m2"
+
+
+P = hypersimplex(6, 2)
+S5 = symmetricGroup(5);
+C = conjugacyClasses(S5, ListRepsOnly => true)
+
+netList elapsedTime equivariantEhrhartSeries hypersimplex(6, 3);
+elapsedTime equivariantEhrhartSeries hypersimplex(9, 2);
+
+equivariantEhrhartSeries permutohedron 4
+
+
+
+restart
+load "equivariantEhrhart.m2"
+
+P = convexHull transpose matrix {
+		{1,1,0,0,1},
+		{1,1,1,0,0},
+		{0,1,1,1,0},
+		{0,0,1,1,1},
+		{1,0,0,1,1}
+		}
+
+netList elapsedTime equivariantEhrhartSeries P
