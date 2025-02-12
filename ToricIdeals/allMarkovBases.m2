@@ -774,8 +774,6 @@ check allMarkovBases
 debug allMarkovBases
 viewHelp allMarkovBases
 
-elapsedTime pruferSequence(8);
-
 
 -- if a toric ideal is created by toricMarkov$0
 -- then the information of the matrix A is not cached anywhere
@@ -791,23 +789,13 @@ peek (gens I).cache
 loadPackage("allMarkovBases",Reload => true)
 fiberGraph matrix "1,2,3"
 
------
--- big to do:
--- check documentation [Ollie]
-
--- little to dos:
--- come up with other examples (slightly bigger ones)
-
--- document countMarkov
-
----------------------
--- checks if cone is pointed
-A = matrix {{1,-1}}
-markovBases A
 
 
 A = matrix {{2,3,4,75,90}}
 elapsedTime randomMarkov A
+countMarkov A
+toricIndispensableSet A
+toricUniversalMarkov A
 
 debug allMarkovBases
 
@@ -815,10 +803,9 @@ elapsedTime  allFibersConnectedComponents = fiberGraph(A,
     ReturnConnectedComponents => true,
     CheckInput => true);
 
-
 A = matrix {{1,2,6,12,24,48}}
 elapsedTime randomMarkov A
 elapsedTime randomMarkov A
 
-#markovBases A;
+-- #markovBases A;
 countMarkov A
