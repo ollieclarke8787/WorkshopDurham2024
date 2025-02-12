@@ -29,65 +29,65 @@ export {
 
 fiberGraph = method(
     Options => {
-	ReturnConnectedComponents => false,
-	CheckInput => true
-	}
+        ReturnConnectedComponents => false,
+        CheckInput => true
+        }
     );
 
 
 fiberGraph Matrix := opts -> A -> (
     if not A.cache#?"FiberGraph" then (
-	n := numColumns A;
-	starterMarkovBasis := toricMarkov A;
-	if opts.CheckInput then (
-	    for basisElement in entries starterMarkovBasis do (
-		if (all(basisElement, z -> z >= 0) or all(basisElement, z -> z <= 0)) then error("matrix is not pointed");
-		);
-	    );
-	fiberStarters := new MutableHashTable;
-	possibleMoves := new MutableList;
-	for i from 0 to numRows starterMarkovBasis - 1 do(
-	    starterFiberElement := for j from 0 to n-1 list(if starterMarkovBasis_(i,j)>=0 then starterMarkovBasis_(i,j) else 0);
-	    fiberValue := A * transpose matrix{starterFiberElement};
-	    if not fiberStarters#?fiberValue then fiberStarters#fiberValue = starterFiberElement;
-	    validMove := flatten entries starterMarkovBasis^{i};
-	    possibleMoves##possibleMoves = validMove;
-	    possibleMoves##possibleMoves = - validMove;
-	    );
-	fibers := new MutableList;
-	for starterFiberElement in values fiberStarters do(
-	    queueOfFiberElements := new MutableList from {starterFiberElement};
-	    adjacencyMatrixIndex := new MutableHashTable from {starterFiberElement => 0};
-	    adjacencyMatrix := matrix("0");
-	    fiberSize := 1;
-	    while #queueOfFiberElements != 0 do(
-		currentFiberElement := queueOfFiberElements#0;
-		for move in possibleMoves do(
-		    testFiberElement := move + currentFiberElement;
-		    if (all(testFiberElement, z -> z>=0) and not adjacencyMatrixIndex#?testFiberElement) then (
-			queueOfFiberElements##queueOfFiberElements=testFiberElement;
-			intersectionIndex := mutableMatrix(ZZ,1,fiberSize);
-			for keyVals in pairs adjacencyMatrixIndex do(
-			    if (not all(testFiberElement, keyVals_0,(y,z) -> y<=0 or z<=0)) then (
-				intersectionIndex_(0,keyVals_1) = 1
-				);
-			    );
-			intersectionIndex = matrix intersectionIndex;
-			adjacencyMatrix = matrix{{adjacencyMatrix, transpose intersectionIndex}, {intersectionIndex, matrix{{0}}}};
-			adjacencyMatrixIndex#testFiberElement = fiberSize;
-			fiberSize = fiberSize + 1
-			);
-		    );
-		remove(queueOfFiberElements,0);
-		);
-	    orderedAdjacencyMatrixIndex := new MutableList from toList(numColumns adjacencyMatrix:0);
-	    for l in keys adjacencyMatrixIndex do orderedAdjacencyMatrixIndex#(adjacencyMatrixIndex#l)=l;
-	    fibers##fibers=graph(toList orderedAdjacencyMatrixIndex, adjacencyMatrix);
-	    );
-	fibers = toList fibers;
-	A.cache#"FiberGraph" = fibers;
-	A.cache#"FiberGraphComponents" = apply(A.cache#"FiberGraph", connectedComponents);
-	);
+        n := numColumns A;
+        starterMarkovBasis := toricMarkov A;
+        if opts.CheckInput then (
+            for basisElement in entries starterMarkovBasis do (
+                if (all(basisElement, z -> z >= 0) or all(basisElement, z -> z <= 0)) then error("matrix is not pointed");
+                );
+            );
+        fiberStarters := new MutableHashTable;
+        possibleMoves := new MutableList;
+        for i from 0 to numRows starterMarkovBasis - 1 do(
+            starterFiberElement := for j from 0 to n-1 list(if starterMarkovBasis_(i,j)>=0 then starterMarkovBasis_(i,j) else 0);
+            fiberValue := A * transpose matrix{starterFiberElement};
+            if not fiberStarters#?fiberValue then fiberStarters#fiberValue = starterFiberElement;
+            validMove := flatten entries starterMarkovBasis^{i};
+            possibleMoves##possibleMoves = validMove;
+            possibleMoves##possibleMoves = - validMove;
+            );
+        fibers := new MutableList;
+        for starterFiberElement in values fiberStarters do(
+            queueOfFiberElements := new MutableList from {starterFiberElement};
+            adjacencyMatrixIndex := new MutableHashTable from {starterFiberElement => 0};
+            adjacencyMatrix := matrix("0");
+            fiberSize := 1;
+            while #queueOfFiberElements != 0 do(
+                currentFiberElement := queueOfFiberElements#0;
+                for move in possibleMoves do(
+                    testFiberElement := move + currentFiberElement;
+                    if (all(testFiberElement, z -> z>=0) and not adjacencyMatrixIndex#?testFiberElement) then (
+                        queueOfFiberElements##queueOfFiberElements=testFiberElement;
+                        intersectionIndex := mutableMatrix(ZZ,1,fiberSize);
+                        for keyVals in pairs adjacencyMatrixIndex do(
+                            if (not all(testFiberElement, keyVals_0,(y,z) -> y<=0 or z<=0)) then (
+                                intersectionIndex_(0,keyVals_1) = 1
+                                );
+                            );
+                        intersectionIndex = matrix intersectionIndex;
+                        adjacencyMatrix = matrix{{adjacencyMatrix, transpose intersectionIndex}, {intersectionIndex, matrix{{0}}}};
+                        adjacencyMatrixIndex#testFiberElement = fiberSize;
+                        fiberSize = fiberSize + 1
+                        );
+                    );
+                remove(queueOfFiberElements,0);
+                );
+            orderedAdjacencyMatrixIndex := new MutableList from toList(numColumns adjacencyMatrix:0);
+            for l in keys adjacencyMatrixIndex do orderedAdjacencyMatrixIndex#(adjacencyMatrixIndex#l)=l;
+            fibers##fibers=graph(toList orderedAdjacencyMatrixIndex, adjacencyMatrix);
+            );
+        fibers = toList fibers;
+        A.cache#"FiberGraph" = fibers;
+        A.cache#"FiberGraphComponents" = apply(A.cache#"FiberGraph", connectedComponents);
+        );
     if opts.ReturnConnectedComponents then A.cache#"FiberGraphComponents" else A.cache#"FiberGraph"
     )
 
@@ -98,14 +98,14 @@ pruferSequence List := L -> (
     edgeList := new MutableList;
     nodeDegrees := new MutableList from toList(numberOfNodes : 1);
     for j in L do(
-	nodeDegrees#j = nodeDegrees#j + 1;
+        nodeDegrees#j = nodeDegrees#j + 1;
         );
     for j in L do(
         for node from 0 to numberOfNodes - 1 do(
             if nodeDegrees#node == 1 then(
-		edgeList##edgeList = set {node, j};
-		nodeDegrees#j = nodeDegrees#j - 1;
-		nodeDegrees#node = nodeDegrees#node - 1;
+                edgeList##edgeList = set {node, j};
+                nodeDegrees#j = nodeDegrees#j - 1;
+                nodeDegrees#node = nodeDegrees#node - 1;
                 break;
                 );
             );
@@ -119,30 +119,30 @@ pruferSequence List := L -> (
 listProd = method();
 listProd List := L -> (
     fold((combinedLists, listToBeAdded) -> flatten for combinedElement in combinedLists list for newElement in listToBeAdded list append(combinedElement, newElement),
-	{{}},
-	L)
+        {{}},
+        L)
     );
 
 
 
 markovBases = method(
     Options => {
-	CheckInput => true
-	}
+        CheckInput => true
+        }
     );
 markovBases Matrix := opts -> A -> (
     allFibersConnectedComponents := fiberGraph(A,
-	ReturnConnectedComponents => true,
-	CheckInput => opts.CheckInput);
+        ReturnConnectedComponents => true,
+        CheckInput => opts.CheckInput);
     allFibersSpanningTrees := for fiberConnectedComponents in allFibersConnectedComponents list(
-	for pruferList in listProd splice {
-	    #fiberConnectedComponents - 2 : toList(0..#fiberConnectedComponents-1)
-	    } list pruferSequence pruferList
-	);
+        for pruferList in listProd splice {
+            #fiberConnectedComponents - 2 : toList(0..#fiberConnectedComponents-1)
+            } list pruferSequence pruferList
+        );
     markovBasesAsLists := listProd for k from 0 to #allFibersSpanningTrees-1 list(
-	flatten for spanningTree in allFibersSpanningTrees#k list(
-	    listProd for edge in spanningTree list(
-		pairsOfFiberElements := listProd for l in keys edge list allFibersConnectedComponents#k#l;
+        flatten for spanningTree in allFibersSpanningTrees#k list(
+            listProd for edge in spanningTree list(
+                pairsOfFiberElements := listProd for l in keys edge list allFibersConnectedComponents#k#l;
                 for pair in pairsOfFiberElements list pair#0-pair#1
                 )
             )
@@ -158,17 +158,17 @@ markovBases(Matrix, Ring) := opts -> (A, R) -> (
 
 randomMarkov = method(
     Options => {
-	NumberOfBases => 1,
-	AlwaysReturnList => false,
-	CheckInput => true
-	}
+        NumberOfBases => 1,
+        AlwaysReturnList => false,
+        CheckInput => true
+        }
     );
 
 
 randomMarkov Matrix := opts -> A -> (
     allFibersConnectedComponents := fiberGraph(A,
-	ReturnConnectedComponents => true,
-	CheckInput => opts.CheckInput);
+        ReturnConnectedComponents => true,
+        CheckInput => opts.CheckInput);
     randomMarkovBases := for i from 0 to opts.NumberOfBases - 1 list(
         allFibersRandomSpanningTree := for fiberConnectedComponents in allFibersConnectedComponents list(
             pruferSequence for j from 1 to #fiberConnectedComponents-2 list random(#fiberConnectedComponents)
@@ -176,7 +176,7 @@ randomMarkov Matrix := opts -> A -> (
         matrix flatten for k from 0 to #allFibersRandomSpanningTree-1 list(
             for edge in allFibersRandomSpanningTree#k list(
                 randomPairOfFiberElements := for l in keys edge list allFibersConnectedComponents#k#l#(random(#allFibersConnectedComponents#k#l));
-		randomPairOfFiberElements#0-randomPairOfFiberElements#1
+                randomPairOfFiberElements#0-randomPairOfFiberElements#1
                 )
             )
         );
@@ -196,15 +196,15 @@ randomMarkov(Matrix, Ring) := opts -> (A, R) -> (
 countMarkov = method()
 countMarkov Matrix := A -> (
     allFibersConnectedComponents := fiberGraph(A,
-	ReturnConnectedComponents => true,
-	CheckInput => true);
+        ReturnConnectedComponents => true,
+        CheckInput => true);
     product (
-	allFibersConnectedComponents / (f -> (
-		fiberSize := #f;
-		fiberChoices := product ((v -> #v) \ f);
-		fiberChoices * fiberSize^(fiberSize - 2)
-		))
-	)
+        allFibersConnectedComponents / (f -> (
+                fiberSize := #f;
+                fiberChoices := product ((v -> #v) \ f);
+                fiberChoices * fiberSize^(fiberSize - 2)
+                ))
+        )
     )
 
 
@@ -259,7 +259,9 @@ doc ///
             systems of binomial generators and the indispensable
             complex of a toric ideal. Volume 135 of ",
             EM "Proceedings of the American Mathematical Society",
-            "2007."}
+            "2007."},
+        {"Prüfer, H. (1918). Neuer Beweis eines Satzes über Permutationen.",
+            EM "Arch. Math. Phys. 27: 742–744."}
         }@
 
   Subnodes
@@ -268,171 +270,163 @@ doc ///
 
 
 doc ///
-	Key
-		fiberGraph
-		(fiberGraph, Matrix)
-		[fiberGraph, ReturnConnectedComponents]
-		[fiberGraph, CheckInput]
-	Headline
-		the relevant fibers of a configuration matrix as graphs
-	Usage
-		G = fiberGraph(A)
-	Inputs
-		A : Matrix
-			the configuration matrix
-		ReturnConnectedComponents => Boolean
-			when true fiberGraph returns a list of connected components of each fiber instead of the whole graphs
-		CheckInput => Boolean
-			whether it is verified that the semigroup of the configuration matrix is pointed
-	Outputs
-		G : List
-			a list of graphs corresponding to relevant fibers of A
-	Description
-		Text
-			Constructs the relevant fibers of a configuration matrix $A$ using a recursive algorithm.
-			The fibres are returned as a list of graphs where two vectors in a fiber are adjacent if their
-			supports have non-trivial intersection.
-			When ReturnConnectedComponents is true, instead of returning a list of graphs, fiberGraph returns a list of the connected components of each fiber.
-		Example
-			fiberGraph matrix "3,4,5"
-			fiberGraph matrix "1,2,3"
-			fiberGraph(matrix "1,2,3", ReturnConnectedComponents => true)
-			fiberGraph matrix "1,2,3,4"
-	SeeAlso
-		markovBases
-		allMarkovBases
-///
-
-
-
-doc ///
-	Key
-		pruferSequence
-		(pruferSequence, List)
-	Headline
-		the corresponding edge set of the spanning tree corresponding to the given Prüfer sequence
-	Usage
-		E=pruferSequence(L)
-	Inputs
-		L : List
-			Prüfer sequence to be converted into tree
-	Outputs
-		E : List
-			the corresponding edge set of the spanning tree corresponding to the given Prüfer sequence L
-	Description
-		Text
-			Computes the corresponding edge set of the spanning tree corresponding to the given Prüfer sequence L, calculated via Prüfer's algorithm
-		Example
-			pruferSequence {2}
-			pruferSequence {1,3}
-
-	SeeAlso
-		markovBases
-		allMarkovBases
-
-	References
-	  @UL{
-			{"Prüfer, H. (1918). Neuer Beweis eines Satzes über Permutationen.",
-					EM "Arch. Math. Phys. 27: 742–744."}
-			}@
-
-	Subnodes
-		fiberGraph
-		markovBases
-		pruferSequence
-///
-
-
-
-doc ///
-	Key
-		markovBases
-		(markovBases, Matrix)
-		(markovBases, Matrix, Ring)
-		[markovBases, CheckInput]
-	Headline
-		every minimal Markov basis of a configuration matrix
-	Usage
-		K=markovBases(A)
-		L=markovBases(A,R)
-	Inputs
-		A : Matrix
-			the configuration matrix
-		R : Ring
-			ring with 1 generator for each column of A
-		CheckInput => Boolean
-			whether it is verified that the semigroup of the configuration matrix is pointed
-	Outputs
-		K : List
-			a list of every minimal Markov basis formatted as matrices whose rows form a minimal Markov basis of A
-		L : List
-			a list of every ideal in R generated by a minimal Markov basis of A
-	Description
-		Text
-			this method outputs a list of every minimal Markov basis for a given configuration matrix
-		Example
-			netList markovBases matrix "3,4,5"
-			netList markovBases matrix "1,2,3"
-			netList markovBases matrix "1,2,3,4"
-			netList markovBases matrix "1,2,3;4,5,6"
-		Text
-			if, in addition, we specify a ring R, this method outputs a list of every ideal in R generated by a minimal Markov basis of A
-		Example
-			netList markovBases(matrix "3,4,5",QQ[x_1,x_2,x_3])
-			gens (markovBases(matrix "3,4,5",QQ[x_1,x_2,x_3]))#0
-			netList markovBases(matrix "1,2,3",QQ[x_1,x_2,x_3])
-			gens (markovBases(matrix "1,2,3",QQ[x_1,x_2,x_3]))#1
-	SeeAlso
-		allMarkovBases
+  Key
+    fiberGraph
+    (fiberGraph, Matrix)
+    [fiberGraph, ReturnConnectedComponents]
+    [fiberGraph, CheckInput]
+  Headline
+    the relevant fibers of a configuration matrix as graphs
+  Usage
+    G = fiberGraph(A)
+  Inputs
+    A : Matrix
+      the configuration matrix
+    ReturnConnectedComponents => Boolean
+      when true fiberGraph returns a list of connected components of each fiber instead of the whole graphs
+    CheckInput => Boolean
+      whether it is verified that the semigroup of the configuration matrix is pointed
+  Outputs
+    G : List
+      a list of graphs corresponding to relevant fibers of A
+  Description
+    Text
+      Constructs the relevant fibers of a configuration matrix $A$ using a recursive algorithm.
+      The fibres are returned as a list of graphs where two vectors in a fiber are adjacent if their
+      supports have non-trivial intersection.
+      When ReturnConnectedComponents is true, instead of returning a list of graphs, fiberGraph returns a list of the connected components of each fiber.
+    Example
+      fiberGraph matrix "3,4,5"
+      fiberGraph matrix "1,2,3"
+      fiberGraph(matrix "1,2,3", ReturnConnectedComponents => true)
+      fiberGraph matrix "1,2,3,4"
+  SeeAlso
+    markovBases
+    allMarkovBases
 ///
 
 
 doc ///
-	Key
-		randomMarkov
-		(randomMarkov, Matrix)
-		(randomMarkov, Matrix, Ring)
-		[randomMarkov, NumberOfBases]
-		[randomMarkov, AlwaysReturnList]
-		[randomMarkov, CheckInput]
-		NumberOfBases
-		AlwaysReturnList
-	Headline
-		random minimal Markov basis
-	Usage
-		B = randomMarkov A
-		C = randomMarkov(A,R)
-	Inputs
-		A : Matrix
-			the configuration matrix
-		R : Ring
-		        ring with 1 generator for each column of A
-		NumberOfBases => ZZ
-			number of Markov bases to return
-		AlwaysReturnList => Boolean
-		        if false and NumberOfBases == 1 then returns as a list of 1 element
-		CheckInput => Boolean
-			whether it is verified that the semigroup of the configuration matrix is pointed
-	Outputs
-		B : Matrix
-			a Markov basis of A formatted as a list of vectors
-		C : Ideal
-			an ideal in R generated by a random Markov basis
+  Key
+    pruferSequence
+    (pruferSequence, List)
+  Headline
+    the corresponding edge set of the spanning tree corresponding to the given Prüfer sequence
+  Usage
+    E=pruferSequence(L)
+  Inputs
+    L : List
+      Prüfer sequence to be converted into tree
+  Outputs
+    E : List
+      the corresponding edge set of the spanning tree corresponding to the given Prüfer sequence L
+  Description
+    Text
+      Computes the corresponding edge set of the spanning tree corresponding to the given Prüfer sequence L, calculated via Prüfer's algorithm
+    Example
+      pruferSequence {2}
+      pruferSequence {1,3}
 
-	Description
-		Text
-			this method outputs one randomly chosen Markov basis for a given configuration matrix A
-		Example
-			randomMarkov matrix "1,2,3"
-			randomMarkov matrix "1,2,3,4"
-		Text
-		        In addition, we can specify the number of random Markov bases can be specified using the option NumberOfBases in cases when there are many minimal Markov bases.
-			randomMarkov(matrix "2,5,20", NumberOfBases => 3)
-	SeeAlso
-		markovBases
-		allMarkovBases
+  SeeAlso
+    markovBases
+    allMarkovBases
+
+  Subnodes
+    fiberGraph
+    markovBases
+    pruferSequence
 ///
 
+
+doc ///
+  Key
+    markovBases
+    (markovBases, Matrix)
+    (markovBases, Matrix, Ring)
+    [markovBases, CheckInput]
+  Headline
+    every minimal Markov basis of a configuration matrix
+  Usage
+    K=markovBases(A)
+    L=markovBases(A,R)
+  Inputs
+    A : Matrix
+      the configuration matrix
+    R : Ring
+      ring with 1 generator for each column of A
+    CheckInput => Boolean
+      whether it is verified that the semigroup of the configuration matrix is pointed
+  Outputs
+    K : List
+      a list of every minimal Markov basis formatted as matrices whose rows form a minimal Markov basis of A
+    L : List
+      a list of every ideal in R generated by a minimal Markov basis of A
+  Description
+    Text
+      this method outputs a list of every minimal Markov basis for a given configuration matrix
+    Example
+      netList markovBases matrix "3,4,5"
+      netList markovBases matrix "1,2,3"
+      netList markovBases matrix "1,2,3,4"
+      netList markovBases matrix "1,2,3;4,5,6"
+    Text
+      if, in addition, we specify a ring R, this method outputs a list of every ideal in R generated by a minimal Markov basis of A
+    Example
+      netList markovBases(matrix "3,4,5",QQ[x_1,x_2,x_3])
+      gens (markovBases(matrix "3,4,5",QQ[x_1,x_2,x_3]))#0
+      netList markovBases(matrix "1,2,3",QQ[x_1,x_2,x_3])
+      gens (markovBases(matrix "1,2,3",QQ[x_1,x_2,x_3]))#1
+  SeeAlso
+    allMarkovBases
+///
+
+
+doc ///
+  Key
+    randomMarkov
+    (randomMarkov, Matrix)
+    (randomMarkov, Matrix, Ring)
+    [randomMarkov, NumberOfBases]
+    [randomMarkov, AlwaysReturnList]
+    [randomMarkov, CheckInput]
+    NumberOfBases
+    AlwaysReturnList
+  Headline
+    random minimal Markov basis
+  Usage
+    B = randomMarkov A
+    C = randomMarkov(A,R)
+  Inputs
+    A : Matrix
+      the configuration matrix
+    R : Ring
+      ring with 1 generator for each column of A
+    NumberOfBases => ZZ
+      number of Markov bases to return
+    AlwaysReturnList => Boolean
+      if false and NumberOfBases == 1 then returns as a list of 1 element
+    CheckInput => Boolean
+      whether it is verified that the semigroup of the configuration matrix is pointed
+  Outputs
+    B : Matrix
+      a Markov basis of A formatted as a list of vectors
+    C : Ideal
+      an ideal in R generated by a random Markov basis
+
+  Description
+    Text
+      this method outputs one randomly chosen Markov basis for a given configuration matrix A
+    Example
+      randomMarkov matrix "1,2,3"
+      randomMarkov matrix "1,2,3,4"
+    Text
+      In addition, we can specify the number of random Markov bases can be specified using the option NumberOfBases in cases when there are many minimal Markov bases.
+    Example
+      randomMarkov(matrix "2,5,20", NumberOfBases => 3)
+  SeeAlso
+    markovBases
+    allMarkovBases
+///
 
 
 -* Test section *-
@@ -511,8 +505,8 @@ elapsedTime randomMarkov A
 debug allMarkovBases
 
 elapsedTime  allFibersConnectedComponents = fiberGraph(A,
-	ReturnConnectedComponents => true,
-	CheckInput => true);
+    ReturnConnectedComponents => true,
+    CheckInput => true);
 
 
 A = matrix {{1,2,6,12,24,48}}
