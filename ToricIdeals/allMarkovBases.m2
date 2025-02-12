@@ -2,15 +2,24 @@ newPackage(
     "allMarkovBases",
     Version => "0.1",
     Date => "December 16, 2024",
-    Headline => "A package to compute all minimal Markov Bases of a given configuration matrix",
+    Headline => "package for computing all minimal Markov bases
+    of a configuration matrix",
     Authors => {
-        {Name => "Alex Milner", Email => "A.J.C.Milner@sms.ed.ac.uk", HomePage => "https://alexandermilner.github.io/"},
-        {Name => "Oliver Clarke", Email => "oliver.clarke@durham.ac.uk", HomePage => "https://www.oliverclarkemath.com/"}
+        {Name => "Alex Milner",
+            Email => "A.J.C.Milner@sms.ed.ac.uk",
+            HomePage => "https://alexandermilner.github.io/"},
+        {Name => "Oliver Clarke",
+            Email => "oliver.clarke@durham.ac.uk",
+            HomePage => "https://www.oliverclarkemath.com/"}
         },
     AuxiliaryFiles => false,
     DebuggingMode => true,
     PackageExports => {"FourTiTwo","Graphs"}
     )
+
+-------------
+-- Exports --
+-------------
 
 export {
     "pruferSequence",
@@ -24,8 +33,9 @@ export {
     "countMarkov"
     }
 
--* Code *-
-
+----------
+-- Code --
+----------
 
 fiberGraph = method(
     Options => {
@@ -118,11 +128,17 @@ pruferSequence List := L -> (
 -- direct product of lists (unexported)
 listProd = method();
 listProd List := L -> (
-    fold((combinedLists, listToBeAdded) -> flatten for combinedElement in combinedLists list for newElement in listToBeAdded list append(combinedElement, newElement),
+    fold(
+        (combinedLists, listToBeAdded) -> (
+            flatten for combinedElement in combinedLists list (
+                for newElement in listToBeAdded list (
+                    append(combinedElement, newElement)
+                    )
+                )
+            ),
         {{}},
         L)
     );
-
 
 
 markovBases = method(
@@ -209,7 +225,10 @@ countMarkov Matrix := A -> (
 
 
 
--* Documentation section *-
+-------------------
+-- Documentation --
+-------------------
+
 
 beginDocumentation()
 
@@ -217,31 +236,56 @@ doc ///
   Key
     allMarkovBases
   Headline
-    A package for computing all minimal Markov Bases of a toric ideal
+    compute all minimal Markov Bases of a toric ideal
   Description
     Text
-      Fix a matrix $A = (a_{i,j}) \in \ZZ^{d \times n}$ satisfying $\ker(A) \cap (\ZZ_{\ge 0})^n = \{0\}$.
-      The toric ideal $I_A$ is the kernel of the associated monomial map
-      $\phi_A : k[x_1, \dots, x_n] \rightarrow k[t_1, \dots, t_d]$ given by
-      $\phi(x_i) = t_1^{a_{1,i}} t_2^{a_{2,i}} \dots t_d^{a_{d,i}}$ for each $i \in [n]$.
-      A Markov basis is a minimal generating set for a toric ideal.
-      Has uses in Algebraic Statistics [+ref] for sampling
+      Fix a matrix $A = (a_{i,j}) \in \ZZ^{d \times n}$ satisfying
+      $\ker(A) \cap (\ZZ_{\ge 0})^n = \{0\}$. The toric ideal $I_A$
+      is the kernel of the associated monomial map
+      $\phi_A : k[x_1, \dots, x_n] \rightarrow k[t_1, \dots, t_d]$
+      given by $\phi(x_i) = t_1^{a_{1,i}} t_2^{a_{2,i}} \dots t_d^{a_{d,i}}$
+      for each $i \in [n]$. A Markov basis is a minimal generating
+      set for a toric ideal.
+      Markov bases are used in Algebraic Statistics in hypothesis testing
+      for contingency tables; for further details we refer to:
+      M. Drton, B. Sturmfels, and S. Sullivant
+      {\bf Lectures on Algebraic Statistics}
 
-      This package computes the set of all minimal Markov bases of a given toric ideal $I_A$.
-      We do this by using [+ref] FourTiTwo to compute one Markov basis $M$.
-      We then find all spanning forests of the \emph{fiber graph} of $A$ in the \emph{generating fibers}.
-      We then construct the Markov basis associated to each spanning forest.
+      This package computes the set of all minimal Markov bases of a
+      given toric ideal $I_A$. We do this by using @TO FourTiTwo@ to
+      efficiently compute one Markov basis $M$. We then compute all
+      spanning forests of the \emph{fiber graph} of $A$ in the
+      \emph{generating fibers} using the well-known bijection
+      of Prüfer. Each spanning forest corresponds to
+      a Markov basis, which gives us an efficient way to compute the
+      number of Markov bases of $A$ as well as produce the Markov bases.
+      For further theoretical details, see
+      H. Charalambous, K. Anargyros, A. Thoma
+      {\bf Minimal systems of binomial generators and the indispensable
+          complex of a toric ideal}.
+
+      Below is an example showing how to compute all Markov bases for
+      the matrix $A = (7 \ 8 \ 9 \ 10) \in \ZZ^{1 \times 4}$.
 
     Example
-      A = matrix "7,8,9,10"
+      A = matrix "7,8,9,10";
+      countMarkov A
       netList markovBases A
 
     Text
-      The package also allows for the uniformly sampling of the space of minimal Markov bases where the number of random Markov bases can be specified using the option NumberOfBases.
+      The format of the output follows that of @TO toricMarkov@, so each
+      minimal Markov basis is given by a matrix whose rows correspond to
+      elements of the Markov basis.
+
+      If the configuration matrix has too manxy Markov bases, then it may be
+      convenient to use a random Markov basis.
+      This package provides a method to produce a random minimal Markov basis
+      that is uniformly sampled from the set of all minimal Markov bases.
 
     Example
-      randomMarkov(A)
-      netList randomMarkov(A, NumberOfBases => 2)
+      A = matrix "2,3,5,7,30,31,32";
+      countMarkov A
+      randomMarkov A
 
   References
     @UL{
@@ -266,6 +310,10 @@ doc ///
 
   Subnodes
     randomMarkov
+    countMarkov
+    fiberGraph
+    markovBases
+    pruferSequence
 ///
 
 
@@ -275,31 +323,43 @@ doc ///
     (fiberGraph, Matrix)
     [fiberGraph, ReturnConnectedComponents]
     [fiberGraph, CheckInput]
+    ReturnConnectedComponents
+    CheckInput
   Headline
-    the relevant fibers of a configuration matrix as graphs
+    generating fibers of a configuration matrix
   Usage
-    G = fiberGraph(A)
+    G = fiberGraph A
   Inputs
     A : Matrix
-      the configuration matrix
+      configuration matrix
     ReturnConnectedComponents => Boolean
-      when true fiberGraph returns a list of connected components of each fiber instead of the whole graphs
+      if true then return the list of connected components
+      of each fiber, otherwise return the whole graphs
     CheckInput => Boolean
-      whether it is verified that the semigroup of the configuration matrix is pointed
+      verify that the semigroup of the
+      configuration matrix is pointed
   Outputs
     G : List
-      a list of graphs corresponding to relevant fibers of A
+      a list of graphs, one for each generating fiber of A
   Description
     Text
-      Constructs the relevant fibers of a configuration matrix $A$ using a recursive algorithm.
-      The fibres are returned as a list of graphs where two vectors in a fiber are adjacent if their
-      supports have non-trivial intersection.
-      When ReturnConnectedComponents is true, instead of returning a list of graphs, fiberGraph returns a list of the connected components of each fiber.
+      This function constructs the generating fibers of
+      the configuration matrix $A$. The fibers are returned
+      as a list of graphs where two vectors in a fiber are
+      adjacent if their supports have non-trivial intersection.
+
+      If the option @TO ReturnConnectedComponents@ is true then,
+      instead of returning a list of graphs, the function returns
+      a list of the connected components of each fiber.
     Example
       fiberGraph matrix "3,4,5"
       fiberGraph matrix "1,2,3"
       fiberGraph(matrix "1,2,3", ReturnConnectedComponents => true)
-      fiberGraph matrix "1,2,3,4"
+    Text
+      If the option @TO CheckInput@ is false then the functions does
+      not check if the semigroup $\NN A$ is pointed, which may result
+      in unexpected behaviour.
+
   SeeAlso
     markovBases
     allMarkovBases
@@ -311,30 +371,28 @@ doc ///
     pruferSequence
     (pruferSequence, List)
   Headline
-    the corresponding edge set of the spanning tree corresponding to the given Prüfer sequence
+    the edge set of a spanning tree corresponding to a Prüfer sequence
   Usage
-    E=pruferSequence(L)
+    E = pruferSequence L
   Inputs
     L : List
-      Prüfer sequence to be converted into tree
+      Prüfer sequence, an element of $\{0, \dots, n-1\}^{n-2}
   Outputs
     E : List
-      the corresponding edge set of the spanning tree corresponding to the given Prüfer sequence L
+      the edge set of the spanning tree corresponding $L$
   Description
     Text
-      Computes the corresponding edge set of the spanning tree corresponding to the given Prüfer sequence L, calculated via Prüfer's algorithm
+      Cayley's formula in graph theory is the result that the number of
+      trees with vertices labelled from $0$ to $n-1$ is $n^{n-2}$. The Prüfer
+      sequence of a labelled tree is an element of $\{0, \dots, n-1\}^{n-2}$
+      and gives an explicit bijection between the two sets.
+
+      This function produces the edge set of the spanning tree corresponding
+      to a given Prüfer sequence.
     Example
       pruferSequence {2}
       pruferSequence {1,3}
-
-  SeeAlso
-    markovBases
-    allMarkovBases
-
-  Subnodes
-    fiberGraph
-    markovBases
-    pruferSequence
+      pruferSequence {3,3,3,4}
 ///
 
 
@@ -345,39 +403,72 @@ doc ///
     (markovBases, Matrix, Ring)
     [markovBases, CheckInput]
   Headline
-    every minimal Markov basis of a configuration matrix
+    all minimal Markov bases of a configuration matrix
   Usage
-    K=markovBases(A)
-    L=markovBases(A,R)
+    K = markovBases A
+    L = markovBases(A, R)
   Inputs
     A : Matrix
-      the configuration matrix
+      configuration matrix
     R : Ring
-      ring with 1 generator for each column of A
+      ring with one generator for each column of $A$
     CheckInput => Boolean
-      whether it is verified that the semigroup of the configuration matrix is pointed
+      whether to verify that the semigroup $\NN A$ is pointed
   Outputs
     K : List
-      a list of every minimal Markov basis formatted as matrices whose rows form a minimal Markov basis of A
+      the minimal Markov bases A
     L : List
-      a list of every ideal in R generated by a minimal Markov basis of A
+      ideals in R generated by the minimal Markov bases of $A$
   Description
     Text
-      this method outputs a list of every minimal Markov basis for a given configuration matrix
+      This method produces all minimal Markov bases of a
+      given configuration matrix $A \in \ZZ^{d \times n}$.
+      By default, the output is formatted in the same way
+      as @TO toricMarkov@: each Markov basis is a $k \times n$
+      matrix whose rows correspond to the elements of the Markov basis.
     Example
-      netList markovBases matrix "3,4,5"
+      netList markovBases matrix "3,4,5" -- unique Markov basis
       netList markovBases matrix "1,2,3"
       netList markovBases matrix "1,2,3,4"
-      netList markovBases matrix "1,2,3;4,5,6"
+      netList markovBases matrix "1,2,3,4;4,5,6,7"
     Text
-      if, in addition, we specify a ring R, this method outputs a list of every ideal in R generated by a minimal Markov basis of A
+      Similarly to @TO toricMarkov@, we may also specify a ring $R$.
+      In this case, the method produces a list of ideals in $R$
+      with each ideal generated by a different minimal Markov basis of $A$.
     Example
-      netList markovBases(matrix "3,4,5",QQ[x_1,x_2,x_3])
-      gens (markovBases(matrix "3,4,5",QQ[x_1,x_2,x_3]))#0
-      netList markovBases(matrix "1,2,3",QQ[x_1,x_2,x_3])
-      gens (markovBases(matrix "1,2,3",QQ[x_1,x_2,x_3]))#1
+      markovBases(matrix "1,2,3",QQ[x_1,x_2,x_3])
+      gens \ (markovBases(matrix "1,2,3",QQ[x_1,x_2,x_3]))
   SeeAlso
-    allMarkovBases
+    randomMarkov
+///
+
+
+doc ///
+  Key
+    countMarkov
+    (countMarkov, Matrix)
+  Headline
+    the number of minimal Markov bases of a configuration matrix
+  Usage
+    N = countMarkov A
+  Inputs
+    A : Matrix
+      configuration matrix
+  Outputs
+    N : ZZ
+      the number of minimal Markov bases of $A$
+  Description
+    Text
+      This method counts all minimal Markov bases of $A$.
+    Example
+      countMarkov matrix "3,4,5" -- unique Markov basis
+      countMarkov matrix "1,2,3"
+      countMarkov matrix "2,3,5,7,30,31,32"
+    Text
+      This method does not produce all minimal Markov bases, so it is much
+      faster to use {\tt countMarkov A} than {\tt #markovBases A}.
+  SeeAlso
+    markovBases
 ///
 
 
@@ -392,55 +483,86 @@ doc ///
     NumberOfBases
     AlwaysReturnList
   Headline
-    random minimal Markov basis
+    get a random minimal Markov basis
   Usage
     B = randomMarkov A
-    C = randomMarkov(A,R)
+    I = randomMarkov(A, R)
   Inputs
     A : Matrix
       the configuration matrix
     R : Ring
-      ring with 1 generator for each column of A
+      with one generator for each column of $A$
     NumberOfBases => ZZ
-      number of Markov bases to return
+      the number of Markov bases to return
     AlwaysReturnList => Boolean
-      if false and NumberOfBases == 1 then returns as a list of 1 element
+      if true (or NumberOfBases > 1) then returns the result as a list
     CheckInput => Boolean
-      whether it is verified that the semigroup of the configuration matrix is pointed
+      whether to verify that the semigroup $\NN A$ is pointed
   Outputs
     B : Matrix
-      a Markov basis of A formatted as a list of vectors
-    C : Ideal
-      an ideal in R generated by a random Markov basis
+      a random Markov basis of $A$
+    I : Ideal
+      an ideal in $R$ generated by a random Markov basis of $A$
 
   Description
     Text
-      this method outputs one randomly chosen Markov basis for a given configuration matrix A
+      This method outputs one minimal Markov basis of $A$ chosen
+      uniformly at random.
     Example
-      randomMarkov matrix "1,2,3"
       randomMarkov matrix "1,2,3,4"
+      A = matrix "2,3,5,7,30,31,32"
+      randomMarkov A
     Text
-      In addition, we can specify the number of random Markov bases can be specified using the option NumberOfBases in cases when there are many minimal Markov bases.
+      The option @TO NumberOfBases@ allows us specify how many Markov
+      bases to return. If this number is greater than one, then the
+      function returns a list of Markov bases. Since each Markov basis
+      is produced independently, it is possible for the list to contain
+      repeats. One may check how many minimal Markov bases exist with
+      the function @TO countMarkov@, and the list of all Markov bases
+      can be computed with @TO markovBases@. Just like @TO markovBases@,
+      we may specify a ring, which produces an ideal whose generating set
+      is given by a random minimal Markov basis.
     Example
-      randomMarkov(matrix "2,5,20", NumberOfBases => 3)
+      A = matrix "2,3,5,7,30,31,32"
+      randomMarkov(A, NumberOfBases => 2)
+      countMarkov A
+      R = ZZ[x_1 .. x_7]
+      netList randomMarkov(A, R, NumberOfBases => 2)
   SeeAlso
     markovBases
-    allMarkovBases
+    countMarkov
 ///
 
-
--* Test section *-
+-----------
+-- Tests --
+-----------
 
 TEST /// -- unique minimal Markov basis for monomial curve in A^3
-assert(set entries (markovBases matrix "3,4,5")_0 == set entries toricMarkov matrix "3,4,5")
+assert(
+    set entries (markovBases matrix "3,4,5")_0
+    ==
+    set entries toricMarkov matrix "3,4,5"
+    )
+///
+
+TEST ///
+assert(countMarkov matrix "3,4,5" == 1)
 ///
 
 TEST /// -- two minimal Markov bases for (CI) monomial curve in A^3
-assert(set apply(markovBases matrix "1,2,3", A -> set entries A) == set {set {{2,-1,0},{3,0,-1}}, set {{2,-1,0},{1,1,-1}}})
+assert(
+    set apply(markovBases matrix "1,2,3", A -> set entries A)
+    ==
+    set {set {{2,-1,0},{3,0,-1}}, set {{2,-1,0},{1,1,-1}}}
+    )
 ///
 
 TEST /// -- hypersurface in A^3
-assert(set entries (markovBases matrix "1,2,3;4,5,6")_0 == set {{1,-2,1}})
+assert(
+    set entries (markovBases matrix "1,2,3;4,5,6")_0
+    ==
+    set {{1,-2,1}}
+    )
 ///
 
 TEST /// -- monomial curve in A^5 with five minimal Markov bases
@@ -450,7 +572,11 @@ result := {
     {{5, -2, 0},{10, 4, -1}},
     {{5, -2, 0},{5, 6, -1}},
     {{5, -2, 0},{0, 8, -1}}};
-assert(set apply(markovBases matrix "2,5,40", A -> set entries A) == set apply(result,set))
+assert(
+    set apply(markovBases matrix "2,5,40", A -> set entries A)
+    ==
+    set apply(result,set)
+    )
 ///
 
 
