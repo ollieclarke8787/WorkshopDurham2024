@@ -14,7 +14,7 @@ newPackage(
         },
     AuxiliaryFiles => false,
     DebuggingMode => true,
-    PackageExports => {"FourTiTwo","Graphs"}
+    PackageExports => {"FourTiTwo","Graphs","TensorComplexes"}
     )
 
 -------------
@@ -31,6 +31,7 @@ export {
     "ReturnConnectedComponents",
     "CheckInput",
     "countMarkov",
+    "countMarkov2",
     "toricIndispensableSet",
     "toricUniversalMarkov"
     }
@@ -216,14 +217,35 @@ countMarkov Matrix := A -> (
     allFibersConnectedComponents := fiberGraph(A,
         ReturnConnectedComponents => true,
         CheckInput => true);
-    product (
-        allFibersConnectedComponents / (f -> (
-                fiberSize := #f;
-                fiberChoices := product ((v -> #v) \ f);
-                fiberChoices * fiberSize^(fiberSize - 2)
-                ))
-        )
+    product for fiberConnectedComponents in allFibersConnectedComponents list(
+	k := #fiberConnectedComponents;
+	ccSizes := (v -> #v) \ fiberConnectedComponents;
+        R := QQ(monoid[Variables => k]);
+	G := gens R;
+	g := (product for x in G list x)*(sum for pair in multiSubsets(toList(0..k-1),k-2) list product for e in pair list G_e);
+	g(toSequence ccSizes)
+	)
     )
+
+countMarkov2 = method()
+countMarkov2 Matrix := A -> (
+    allFibersConnectedComponents := fiberGraph(A,
+        ReturnConnectedComponents => true,
+        CheckInput => true);
+    allFibersSpanningTrees := for fiberConnectedComponents in allFibersConnectedComponents list(
+        for pruferList in listProd splice {
+            #fiberConnectedComponents - 2 : toList(0..#fiberConnectedComponents-1)
+            } list pruferSequence pruferList
+        );
+    product for k from 0 to #allFibersSpanningTrees-1 list(
+	sum for spanningTree in allFibersSpanningTrees#k list(
+	    product for edge in spanningTree list(
+		product for l in keys edge list length allFibersConnectedComponents#k#l
+		)
+	    )
+	)
+    );
+
 
 
 toricIndispensableSet = method()
@@ -787,7 +809,7 @@ peek (gens I).cache
 
 
 loadPackage("allMarkovBases",Reload => true)
-fiberGraph matrix "1,2,3"
+countMarkov  matrix "2,3,7,8,9,10,13"
 
 
 
