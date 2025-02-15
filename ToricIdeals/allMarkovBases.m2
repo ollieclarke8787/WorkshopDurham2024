@@ -219,6 +219,8 @@ countMarkov Matrix := A -> (
         CheckInput => true);
     product for fiberConnectedComponents in allFibersConnectedComponents list(
 	k := #fiberConnectedComponents;
+	if k==2 then continue #fiberConnectedComponents#0 * #fiberConnectedComponents#1;
+	print "why";
 	ccSizes := (v -> #v) \ fiberConnectedComponents;
         R := QQ(monoid[Variables => k]);
 	G := gens R;
