@@ -28,6 +28,7 @@ export {
     "NumberOfBases",
     "AlwaysReturnList",
     "fiberGraph",
+    "fibGraph",
     "ReturnConnectedComponents",
     "CheckInput",
     "countMarkov",
@@ -39,6 +40,69 @@ export {
 ----------
 -- Code --
 ----------
+
+
+--Faster fiberGraph which only returns connected components
+fibGraph = method(
+    Options => {
+        CheckInput => true
+        }
+    );
+
+
+fibGraph Matrix := opts -> A -> (
+    n := numColumns A;
+    starterMarkovBasis := entries toricMarkov A;
+    if opts.CheckInput then (
+        for basisElement in starterMarkovBasis do (
+            if (all(basisElement, z -> z >= 0) or all(basisElement, z -> z <= 0)) then error("matrix is not pointed");
+            );
+        );
+    fiberStarters := new MutableHashTable;
+    fiberValues := new MutableHashTable;
+    revFiberValues := new MutableHashTable;
+    for basis in starterMarkovBasis do(
+        elPos := for coord in basis list(if coord >= 0 then coord else 0);
+        elNeg := elPos - basis;
+        fiberStarters#basis = {elPos,elNeg};
+        fiberVal := flatten entries (A * transpose matrix{elPos});
+        if revFiberValues#?fiberVal then (revFiberValues#fiberVal)##(revFiberValues#fiberVal) = position(starterMarkovBasis,z -> z == basis) else revFiberValues#fiberVal = new MutableList from {position(starterMarkovBasis,z -> z == basis)};
+        fiberValues#basis = fiberVal;
+        );
+    fibers := for basis in starterMarkovBasis list(
+        validMoves := for move in starterMarkovBasis list(
+            if (not (fiberValues#move << fiberValues#basis)) or move == basis then continue; 
+            move
+            );
+        subFiber := new MutableList from {set{(fiberStarters#basis)#0},set{(fiberStarters#basis)#1}};
+        for b in {0,1} do(
+            lenC := 0;
+            while lenC != #subFiber#b do(
+                lenC = #subFiber#b;
+                for move in validMoves do(
+                    h0 := flatten for el in keys subFiber#b list(
+                        flatten for checkIndex in {1,0,-1} list(
+                            if checkIndex == 0 then continue {el};
+                            n := checkIndex;
+                            while all(el+n*move, z -> z >= 0) list el+n*move do n = n + checkIndex
+                            )
+                        );
+                    subFiber#b = set h0;
+                    );
+                );
+            );
+        (v -> toList v) \ toList subFiber
+        );
+    for fiberC in values revFiberValues list(
+        if #fiberC == 1 then continue fibers#(fiberC#0);
+        for collFibers in (listProd for fIndex in fiberC list fibers#fIndex) list(
+            res := toList intersect for cc in collFibers list set cc;
+            if #res == 0 then continue else res
+            )
+        )
+    );
+
+
 
 fiberGraph = method(
     Options => {
@@ -220,7 +284,6 @@ countMarkov Matrix := A -> (
     product for fiberConnectedComponents in allFibersConnectedComponents list(
 	k := #fiberConnectedComponents;
 	if k==2 then continue #fiberConnectedComponents#0 * #fiberConnectedComponents#1;
-	print "why";
 	ccSizes := (v -> #v) \ fiberConnectedComponents;
         R := QQ(monoid[Variables => k]);
 	G := gens R;
