@@ -314,7 +314,7 @@ countMarkov Matrix := A -> (
         k := #fiberConnectedComponents;
         if k==2 then continue #fiberConnectedComponents#0 * #fiberConnectedComponents#1;
         ccSizes := (v -> #v) \ fiberConnectedComponents;
-        R := QQ(monoid[Variables => k]);
+        R := ZZ(monoid[Variables => k]);
         G := gens R;
         g := (product for x in G list x)*(sum for pair in multiSubsets(toList(0..k-1),k-2) list product for e in pair list G_e);
         g(toSequence ccSizes)
