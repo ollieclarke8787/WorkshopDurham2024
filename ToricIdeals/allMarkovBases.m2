@@ -31,7 +31,6 @@ export {
     "ReturnConnectedComponents",
     "CheckInput",
     "countMarkov",
-    "countMarkov2",
     "toricIndispensableSet",
     "toricUniversalMarkov"
     }
@@ -86,7 +85,7 @@ fiberGraph Matrix := opts -> A -> (
                 )
             else error("unknown option for Algorithm");
             );
-        A.cache#"FiberGraphComponents"
+        A.cache#"FiberGraph"
         )
     )
 
@@ -322,25 +321,6 @@ countMarkov Matrix := A -> (
         )
     )
 
-countMarkov2 = method()
-countMarkov2 Matrix := A -> (
-    allFibersConnectedComponents := fiberGraph(A,
-        ReturnConnectedComponents => true,
-        CheckInput => true);
-    allFibersSpanningTrees := for fiberConnectedComponents in allFibersConnectedComponents list(
-        for pruferList in listProd splice {
-            #fiberConnectedComponents - 2 : toList(0..#fiberConnectedComponents-1)
-            } list pruferSequence pruferList
-        );
-    product for k from 0 to #allFibersSpanningTrees-1 list(
-        sum for spanningTree in allFibersSpanningTrees#k list(
-            product for edge in spanningTree list(
-                product for l in keys edge list length allFibersConnectedComponents#k#l
-                )
-            )
-        )
-    );
-
 
 toricIndispensableSet = method()
 toricIndispensableSet Matrix := A -> (
@@ -411,8 +391,8 @@ doc ///
       This package computes the set of all minimal Markov bases of a
       given toric ideal $I_A$. We do this by using @TO FourTiTwo@ to
       efficiently compute one Markov basis $M$. We then compute all
-      spanning forests of the \emph{fiber graph} of $A$ in the
-      \emph{generating fibers} using the well-known bijection
+      spanning forests of the {\it fiber graph} of $A$ in the
+      {\it generating fibers} using the well-known bijection
       of Prüfer. Each spanning forest corresponds to
       a Markov basis, which gives us an efficient way to compute the
       number of Markov bases of $A$ as well as produce the Markov bases.
@@ -434,7 +414,8 @@ doc ///
       minimal Markov basis is given by a matrix whose rows correspond to
       elements of the Markov basis.
 
-      If the configuration matrix has too manxy Markov bases, then it may be
+      If the configuration matrix has too many minimal
+      Markov bases, then it may be
       convenient to use a random Markov basis.
       This package provides a method to produce a random minimal Markov basis
       that is uniformly sampled from the set of all minimal Markov bases.
@@ -488,6 +469,7 @@ doc ///
     (fiberGraph, Matrix)
     [fiberGraph, ReturnConnectedComponents]
     [fiberGraph, CheckInput]
+    [fiberGraph, Algorithm]
     ReturnConnectedComponents
     CheckInput
   Headline
@@ -503,6 +485,11 @@ doc ///
     CheckInput => Boolean
       verify that the semigroup of the
       configuration matrix is pointed
+    Algorithm => String
+      either "fast" or "graph": "fast" traverses
+      the connected components of the fibers directly; "graph" uses
+      the function @TO connectedComponents@ of the package @TO Graphs@.
+      Use "fast" only if @TO ReturnConnectedComponents@ is set to @TT "true"@
   Outputs
     G : List
       a list of graphs, one for each generating fiber of A
@@ -513,13 +500,17 @@ doc ///
       as a list of graphs where two vectors in a fiber are
       adjacent if their supports have non-trivial intersection.
 
-      If the option @TO ReturnConnectedComponents@ is true then,
+      If the option @TO ReturnConnectedComponents@ is @TT "true"@ then,
       instead of returning a list of graphs, the function returns
-      a list of the connected components of each fiber.
+      a list of the connected components of each fiber. In this
+      this case it is recommended to set the option @TO Algorithm@
+      to @TT "true"@ as this will speed up the calculation.
     Example
       fiberGraph matrix "3,4,5"
       fiberGraph matrix "1,2,3"
-      fiberGraph(matrix "1,2,3", ReturnConnectedComponents => true)
+      fiberGraph(matrix "1,2,3",
+          ReturnConnectedComponents => true,
+          Algorithm => "fast")
     Text
       If the option @TO CheckInput@ is false then the functions does
       not check if the semigroup $\NN A$ is pointed, which may result
