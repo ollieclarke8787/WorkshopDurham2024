@@ -28,7 +28,6 @@ export {
     "NumberOfBases",
     "AlwaysReturnList",
     "fiberGraph",
-    "fibGraph",
     "ReturnConnectedComponents",
     "CheckInput",
     "countMarkov",
@@ -42,22 +41,63 @@ export {
 ----------
 
 
---Faster fiberGraph which only returns connected components
-fibGraph = method(
+
+
+fiberGraph = method(
     Options => {
-        CheckInput => true
+        ReturnConnectedComponents => false,
+        CheckInput => true,
+        Algorithm => "graph" -- "fast" or "graph"
         }
     );
-
-
-fibGraph Matrix := opts -> A -> (
+fiberGraph Matrix := opts -> A -> (
+    local starterMarkovBasis;
     n := numColumns A;
-    starterMarkovBasis := entries toricMarkov A;
-    if opts.CheckInput then (
-        for basisElement in starterMarkovBasis do (
-            if (all(basisElement, z -> z >= 0) or all(basisElement, z -> z <= 0)) then error("matrix is not pointed");
+    if opts.ReturnConnectedComponents then (
+        -- return a list of (lists of) components
+        if not A.cache#?"FiberGraphComponents" then (
+            starterMarkovBasis = toricMarkov A;
+            if opts.CheckInput then ( -- check whether \NN A is a pointed cone
+                for basisElement in entries starterMarkovBasis do (
+                    if (all(basisElement, z -> z >= 0) or all(basisElement, z -> z <= 0)) then error("semigroup not pointed");
+                    );
+                );
+            if opts.Algorithm == "fast" then (
+                fastFiberGraphInternal(A, starterMarkovBasis);
+                )
+            else if opts.Algorithm == "graph" then (
+                graphicFiberGraph(A, starterMarkovBasis);
+                )
+            else error("unknown option for Algorithm");
             );
-        );
+        A.cache#"FiberGraphComponents"
+        )
+    else (
+        -- return the graph objects
+        if not A.cache#?"FiberGraph" then (
+            starterMarkovBasis = toricMarkov A;
+            if opts.CheckInput then ( -- check whether \NN A is a pointed cone
+                for basisElement in entries starterMarkovBasis do (
+                    if (all(basisElement, z -> z >= 0) or all(basisElement, z -> z <= 0)) then error("semigroup not pointed");
+                    );
+                );
+            if opts.Algorithm == "graph" then (
+                graphicFiberGraph(A, starterMarkovBasis);
+                )
+            else error("unknown option for Algorithm");
+            );
+        A.cache#"FiberGraphComponents"
+        )
+    )
+
+
+--faster fiberGraph
+--returns connected components and stores them in A.cache
+
+fastFiberGraphInternal = method();
+fastFiberGraphInternal(Matrix, Matrix) := (A, starterMarkovBasis) -> (
+    starterMarkovBasis = entries starterMarkovBasis;
+    n := numColumns A;
     fiberStarters := new MutableHashTable;
     fiberValues := new MutableHashTable;
     revFiberValues := new MutableHashTable;
@@ -71,7 +111,7 @@ fibGraph Matrix := opts -> A -> (
         );
     fibers := for basis in starterMarkovBasis list(
         validMoves := for move in starterMarkovBasis list(
-            if (not (fiberValues#move << fiberValues#basis)) or move == basis then continue; 
+            if (not (fiberValues#move << fiberValues#basis)) or move == basis then continue;
             move
             );
         subFiber := new MutableList from {set{(fiberStarters#basis)#0},set{(fiberStarters#basis)#1}};
@@ -93,79 +133,67 @@ fibGraph Matrix := opts -> A -> (
             );
         (v -> toList v) \ toList subFiber
         );
-    for fiberC in values revFiberValues list(
+    A.cache#"FiberGraphComponents" = for fiberC in values revFiberValues list(
         if #fiberC == 1 then continue fibers#(fiberC#0);
         for collFibers in (listProd for fIndex in fiberC list fibers#fIndex) list(
             res := toList intersect for cc in collFibers list set cc;
             if #res == 0 then continue else res
             )
-        )
-    );
-
-
-
-fiberGraph = method(
-    Options => {
-        ReturnConnectedComponents => false,
-        CheckInput => true
-        }
-    );
-
-
-fiberGraph Matrix := opts -> A -> (
-    if not A.cache#?"FiberGraph" then (
-        n := numColumns A;
-        starterMarkovBasis := toricMarkov A;
-        if opts.CheckInput then (
-            for basisElement in entries starterMarkovBasis do (
-                if (all(basisElement, z -> z >= 0) or all(basisElement, z -> z <= 0)) then error("matrix is not pointed");
-                );
-            );
-        fiberStarters := new MutableHashTable;
-        possibleMoves := new MutableList;
-        for i from 0 to numRows starterMarkovBasis - 1 do(
-            starterFiberElement := for j from 0 to n-1 list(if starterMarkovBasis_(i,j)>=0 then starterMarkovBasis_(i,j) else 0);
-            fiberValue := A * transpose matrix{starterFiberElement};
-            if not fiberStarters#?fiberValue then fiberStarters#fiberValue = starterFiberElement;
-            validMove := flatten entries starterMarkovBasis^{i};
-            possibleMoves##possibleMoves = validMove;
-            possibleMoves##possibleMoves = - validMove;
-            );
-        fibers := new MutableList;
-        for starterFiberElement in values fiberStarters do(
-            queueOfFiberElements := new MutableList from {starterFiberElement};
-            adjacencyMatrixIndex := new MutableHashTable from {starterFiberElement => 0};
-            adjacencyMatrix := matrix("0");
-            fiberSize := 1;
-            while #queueOfFiberElements != 0 do(
-                currentFiberElement := queueOfFiberElements#0;
-                for move in possibleMoves do(
-                    testFiberElement := move + currentFiberElement;
-                    if (all(testFiberElement, z -> z>=0) and not adjacencyMatrixIndex#?testFiberElement) then (
-                        queueOfFiberElements##queueOfFiberElements=testFiberElement;
-                        intersectionIndex := mutableMatrix(ZZ,1,fiberSize);
-                        for keyVals in pairs adjacencyMatrixIndex do(
-                            if (not all(testFiberElement, keyVals_0,(y,z) -> y<=0 or z<=0)) then (
-                                intersectionIndex_(0,keyVals_1) = 1
-                                );
-                            );
-                        intersectionIndex = matrix intersectionIndex;
-                        adjacencyMatrix = matrix{{adjacencyMatrix, transpose intersectionIndex}, {intersectionIndex, matrix{{0}}}};
-                        adjacencyMatrixIndex#testFiberElement = fiberSize;
-                        fiberSize = fiberSize + 1
-                        );
-                    );
-                remove(queueOfFiberElements,0);
-                );
-            orderedAdjacencyMatrixIndex := new MutableList from toList(numColumns adjacencyMatrix:0);
-            for l in keys adjacencyMatrixIndex do orderedAdjacencyMatrixIndex#(adjacencyMatrixIndex#l)=l;
-            fibers##fibers=graph(toList orderedAdjacencyMatrixIndex, adjacencyMatrix);
-            );
-        fibers = toList fibers;
-        A.cache#"FiberGraph" = fibers;
-        A.cache#"FiberGraphComponents" = apply(A.cache#"FiberGraph", connectedComponents);
         );
-    if opts.ReturnConnectedComponents then A.cache#"FiberGraphComponents" else A.cache#"FiberGraph"
+    );
+
+
+
+-- uses Graphs package to compute the connected components of fiber graphs
+-- returns a list of graphs
+
+graphicFiberGraph = method()
+graphicFiberGraph(Matrix, Matrix) := (A, starterMarkovBasis) -> (
+    n := numColumns A;
+    fiberStarters := new MutableHashTable;
+    possibleMoves := new MutableList;
+    for i from 0 to numRows starterMarkovBasis - 1 do(
+        starterFiberElement := for j from 0 to n-1 list(if starterMarkovBasis_(i,j)>=0 then starterMarkovBasis_(i,j) else 0);
+        fiberValue := A * transpose matrix{starterFiberElement};
+        if not fiberStarters#?fiberValue then fiberStarters#fiberValue = starterFiberElement;
+        validMove := flatten entries starterMarkovBasis^{i};
+        possibleMoves##possibleMoves = validMove;
+        possibleMoves##possibleMoves = - validMove;
+        );
+    fibers := new MutableList;
+    for starterFiberElement in values fiberStarters do(
+        queueOfFiberElements := new MutableList from {starterFiberElement};
+        adjacencyMatrixIndex := new MutableHashTable from {starterFiberElement => 0};
+        adjacencyMatrix := matrix("0");
+        fiberSize := 1;
+        while #queueOfFiberElements != 0 do(
+            currentFiberElement := queueOfFiberElements#0;
+            for move in possibleMoves do(
+                testFiberElement := move + currentFiberElement;
+                if (all(testFiberElement, z -> z>=0) and not adjacencyMatrixIndex#?testFiberElement) then (
+                    queueOfFiberElements##queueOfFiberElements=testFiberElement;
+                    intersectionIndex := mutableMatrix(ZZ,1,fiberSize);
+                    for keyVals in pairs adjacencyMatrixIndex do(
+                        if (not all(testFiberElement, keyVals_0,(y,z) -> y<=0 or z<=0)) then (
+                            intersectionIndex_(0,keyVals_1) = 1
+                            );
+                        );
+                    intersectionIndex = matrix intersectionIndex;
+                    adjacencyMatrix = matrix{{adjacencyMatrix, transpose intersectionIndex}, {intersectionIndex, matrix{{0}}}};
+                    adjacencyMatrixIndex#testFiberElement = fiberSize;
+                    fiberSize = fiberSize + 1
+                    );
+                );
+            remove(queueOfFiberElements,0);
+            );
+        orderedAdjacencyMatrixIndex := new MutableList from toList(numColumns adjacencyMatrix:0);
+        for l in keys adjacencyMatrixIndex do orderedAdjacencyMatrixIndex#(adjacencyMatrixIndex#l)=l;
+        fibers##fibers=graph(toList orderedAdjacencyMatrixIndex, adjacencyMatrix);
+        );
+    fibers = toList fibers;
+    A.cache#"FiberGraph" = fibers;
+    A.cache#"FiberGraphComponents" = apply(A.cache#"FiberGraph", connectedComponents);
+    fibers
     )
 
 
@@ -216,7 +244,8 @@ markovBases = method(
 markovBases Matrix := opts -> A -> (
     allFibersConnectedComponents := fiberGraph(A,
         ReturnConnectedComponents => true,
-        CheckInput => opts.CheckInput);
+        CheckInput => opts.CheckInput,
+        Algorithm => "fast");
     allFibersSpanningTrees := for fiberConnectedComponents in allFibersConnectedComponents list(
         for pruferList in listProd splice {
             #fiberConnectedComponents - 2 : toList(0..#fiberConnectedComponents-1)
@@ -251,7 +280,8 @@ randomMarkov = method(
 randomMarkov Matrix := opts -> A -> (
     allFibersConnectedComponents := fiberGraph(A,
         ReturnConnectedComponents => true,
-        CheckInput => opts.CheckInput);
+        CheckInput => opts.CheckInput,
+        Algorithm => "fast");
     randomMarkovBases := for i from 0 to opts.NumberOfBases - 1 list(
         allFibersRandomSpanningTree := for fiberConnectedComponents in allFibersConnectedComponents list(
             pruferSequence for j from 1 to #fiberConnectedComponents-2 list random(#fiberConnectedComponents)
@@ -275,21 +305,21 @@ randomMarkov(Matrix, Ring) := opts -> (A, R) -> (
     );
 
 
-
 countMarkov = method()
 countMarkov Matrix := A -> (
     allFibersConnectedComponents := fiberGraph(A,
         ReturnConnectedComponents => true,
-        CheckInput => true);
+        CheckInput => true,
+        Algorithm => "fast");
     product for fiberConnectedComponents in allFibersConnectedComponents list(
-	k := #fiberConnectedComponents;
-	if k==2 then continue #fiberConnectedComponents#0 * #fiberConnectedComponents#1;
-	ccSizes := (v -> #v) \ fiberConnectedComponents;
+        k := #fiberConnectedComponents;
+        if k==2 then continue #fiberConnectedComponents#0 * #fiberConnectedComponents#1;
+        ccSizes := (v -> #v) \ fiberConnectedComponents;
         R := QQ(monoid[Variables => k]);
-	G := gens R;
-	g := (product for x in G list x)*(sum for pair in multiSubsets(toList(0..k-1),k-2) list product for e in pair list G_e);
-	g(toSequence ccSizes)
-	)
+        G := gens R;
+        g := (product for x in G list x)*(sum for pair in multiSubsets(toList(0..k-1),k-2) list product for e in pair list G_e);
+        g(toSequence ccSizes)
+        )
     )
 
 countMarkov2 = method()
@@ -303,14 +333,13 @@ countMarkov2 Matrix := A -> (
             } list pruferSequence pruferList
         );
     product for k from 0 to #allFibersSpanningTrees-1 list(
-	sum for spanningTree in allFibersSpanningTrees#k list(
-	    product for edge in spanningTree list(
-		product for l in keys edge list length allFibersConnectedComponents#k#l
-		)
-	    )
-	)
+        sum for spanningTree in allFibersSpanningTrees#k list(
+            product for edge in spanningTree list(
+                product for l in keys edge list length allFibersConnectedComponents#k#l
+                )
+            )
+        )
     );
-
 
 
 toricIndispensableSet = method()
@@ -893,6 +922,10 @@ elapsedTime  allFibersConnectedComponents = fiberGraph(A,
 A = matrix {{1,2,6,12,24,48}}
 elapsedTime randomMarkov A
 elapsedTime randomMarkov A
+
+elapsedTime countMarkov matrix {{1,2,6,12,24,48}}
+elapsedTime countMarkov2 matrix {{1,2,6,12,24,48}}
+
 
 -- #markovBases A;
 countMarkov A
