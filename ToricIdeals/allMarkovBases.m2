@@ -318,12 +318,13 @@ toricIndispensableSet = method()
 toricIndispensableSet Matrix := A -> (
     fiberComponents := fiberGraph(A,
         ReturnConnectedComponents => true,
-        CheckInput => true);
+        CheckInput => true,
+	Algorithm => "fast");
     indispensables := flatten for vertexList in fiberComponents list (
         if (
             #vertexList == 2 and
-            #vertexList_0 == 1
-            ) then vertexList_0 - vertexList_1 else continue
+            #vertexList#0 == 1
+            ) then vertexList#0 - vertexList#1 else continue
         );
     matrix indispensables
     )
@@ -338,7 +339,8 @@ toricUniversalMarkov = method()
 toricUniversalMarkov Matrix := A -> (
     fiberComponents := fiberGraph(A,
         ReturnConnectedComponents => true,
-        CheckInput => true);
+        CheckInput => true,
+	Algorithm => "fast");
     matrix flatten for vertexList in fiberComponents list (
         flatten for pairsOfVertices in subsets(vertexList, 2) list (
             for movePairs in listProd pairsOfVertices list (
@@ -805,11 +807,11 @@ assert(
 
 TEST /// -- monomial curve in A^5 with five minimal Markov bases
 result := {
-    {{5, -2, 0},{20, 0, -1}},
-    {{5, -2, 0},{15, 2, -1}},
-    {{5, -2, 0},{10, 4, -1}},
-    {{5, -2, 0},{5, 6, -1}},
-    {{5, -2, 0},{0, 8, -1}}};
+    {{-5, 2, 0},{20, 0, -1}},
+    {{-5, 2, 0},{15, 2, -1}},
+    {{-5, 2, 0},{10, 4, -1}},
+    {{-5, 2, 0},{5, 6, -1}},
+    {{-5, 2, 0},{0, 8, -1}}};
 assert(
     set apply(markovBases matrix "2,5,40", A -> set entries A)
     ==
@@ -827,33 +829,37 @@ assert(
 
 TEST ///
 assert(
-    toricIndispensableSet matrix "7,8,9,10"
+    set entries toricIndispensableSet matrix "7,8,9,10"
     ==
-    matrix "3,1,-1,-2; 1,-2,1,0; 1,-1,-1,1; 0,1,-2,1"
+    set {{1, -2, 1, 0},
+	{1, -1, -1, 1},
+	{0, 1, -2, 1},
+	{-3, -1, 1, 2}}
     )
 ///
 
 TEST ///
 assert(
-    toricUniversalMarkov matrix "2,3,4"
+    set entries toricUniversalMarkov matrix "2,3,4"
     ==
-    matrix "2,0,-1; 3,-2,0; 1,-2,1"
+    set {{1, -2, 1},
+	{2, 0, -1},
+	{3, -2, 0}}
     )
 ///
 
 TEST ///
 assert(
-    toricUniversalMarkov matrix "7,8,9,10"
+    set entries toricUniversalMarkov matrix "7,8,9,10"
     ==
-    matrix {
-        {4, -1, 0, -2},
-        {4, 0, -2, -1},
-        {3, 1, -1, -2},
-        {3, 0, 1, -3},
-        {2, 2, 0, -3},
-        {1, -2, 1, 0},
-        {1, -1, -1, 1},
-        {0, 1, -2, 1}}
+    set {{-4, 0, 2, 1},
+	{-4, 1, 0, 2},
+	{-3, -1, 1, 2},
+	{0, 1, -2, 1},
+	{1, -1, -1, 1},
+	{1, -2, 1, 0},
+	{2, 2, 0, -3},
+	{3, 0, 1, -3}}
     )
 ///
 
