@@ -103,42 +103,38 @@ fastFiberGraphInternal(Matrix, Matrix) := (A, starterMarkovBasis) -> (
     for basis in starterMarkovBasis do(
         elPos := for coord in basis list(if coord >= 0 then coord else 0);
         elNeg := elPos - basis;
-        fiberStarters#basis = {elPos,elNeg};
-        fiberVal := flatten entries (A * transpose matrix{elPos});
+	fiberVal := flatten entries (A * transpose matrix{elPos});
+	if fiberStarters#?fiberVal then (fiberStarters#fiberVal)##(fiberStarters#fiberVal) = {elPos,elNeg} else fiberStarters#fiberVal = new MutableList from {{elPos,elNeg}};
         if revFiberValues#?fiberVal then (revFiberValues#fiberVal)##(revFiberValues#fiberVal) = position(starterMarkovBasis,z -> z == basis) else revFiberValues#fiberVal = new MutableList from {position(starterMarkovBasis,z -> z == basis)};
         fiberValues#basis = fiberVal;
         );
-    fibers := for basis in starterMarkovBasis list(
-        validMoves := for move in starterMarkovBasis list(
-            if (not (fiberValues#move << fiberValues#basis)) or move == basis then continue;
-            move
-            );
-        subFiber := new MutableList from {set{(fiberStarters#basis)#0},set{(fiberStarters#basis)#1}};
-        for b in {0,1} do(
-            lenC := 0;
-            while lenC != #subFiber#b do(
-                lenC = #subFiber#b;
+
+    A.cache#"FiberGraphComponents" = for val in keys fiberStarters list(
+        validMoves := for move in starterMarkovBasis list if (fiberValues#move << val) and (fiberValues#move != val) then move else continue;
+	buildFiber := toList set flatten toList fiberStarters#val;
+	if #buildFiber != #revFiberValues#val+1 then error("toricMarkov has returned something unexpected");
+	bigCCfound := -1;
+	fiber := for i from 0 to #buildFiber - 1 list(
+	    if bigCCfound != -1 then continue {buildFiber#i};
+	    cc := set {buildFiber#i};
+	    lenCC := 0;
+	    while lenCC != #cc do(
+		if #cc > 1 then bigCCfound = i;
+                lenCC = #cc;
                 for move in validMoves do(
-                    h0 := flatten for el in keys subFiber#b list(
+                    cc = set flatten for el in keys cc list(
                         flatten for checkIndex in {1,0,-1} list(
                             if checkIndex == 0 then continue {el};
                             n := checkIndex;
                             while all(el+n*move, z -> z >= 0) list el+n*move do n = n + checkIndex
                             )
                         );
-                    subFiber#b = set h0;
                     );
                 );
-            );
-        (v -> toList v) \ toList subFiber
-        );
-    A.cache#"FiberGraphComponents" = for fiberC in values revFiberValues list(
-        if #fiberC == 1 then continue fibers#(fiberC#0);
-        for collFibers in (listProd for fIndex in fiberC list fibers#fIndex) list(
-            res := toList intersect for cc in collFibers list set cc;
-            if #res == 0 then continue else res
-            )
-        );
+	    toList cc
+	    );
+	switch(0,bigCCfound,fiber)
+	);
     );
 
 
@@ -311,13 +307,9 @@ countMarkov Matrix := A -> (
         CheckInput => true,
         Algorithm => "fast");
     product for fiberConnectedComponents in allFibersConnectedComponents list(
-        k := #fiberConnectedComponents;
-        if k==2 then continue #fiberConnectedComponents#0 * #fiberConnectedComponents#1;
-        ccSizes := (v -> #v) \ fiberConnectedComponents;
-        R := ZZ(monoid[Variables => k]);
-        G := gens R;
-        g := (product for x in G list x)*(sum for pair in multiSubsets(toList(0..k-1),k-2) list product for e in pair list G_e);
-        g(toSequence ccSizes)
+        n := #fiberConnectedComponents;
+	m := #fiberConnectedComponents#0;
+	m*(m+n-1)^(n-2)
         )
     )
 
@@ -330,8 +322,7 @@ toricIndispensableSet Matrix := A -> (
     indispensables := flatten for vertexList in fiberComponents list (
         if (
             #vertexList == 2 and
-            #vertexList_0 == 1 and
-            #vertexList_1 == 1
+            #vertexList_0 == 1
             ) then vertexList_0 - vertexList_1 else continue
         );
     matrix indispensables
