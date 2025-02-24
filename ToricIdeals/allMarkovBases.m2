@@ -112,14 +112,11 @@ fastFiberGraphInternal(Matrix, Matrix) := (A, starterMarkovBasis) -> (
     A.cache#"FiberGraphComponents" = for val in keys fiberStarters list(
         validMoves := for move in starterMarkovBasis list if (fiberValues#move << val) and (fiberValues#move != val) then move else continue;
 	buildFiber := toList set flatten toList fiberStarters#val;
-	if #buildFiber != #revFiberValues#val+1 then error("toricMarkov has returned something unexpected");
-	bigCCfound := -1;
-	fiber := for i from 0 to #buildFiber - 1 list(
-	    if bigCCfound != -1 then continue {buildFiber#i};
+	if #buildFiber != #revFiberValues#val+1 then error("toricMarkov has returned something unexpected - please change the Algorithm option to graph");
+	for i from 0 to #buildFiber - 1 list(
 	    cc := set {buildFiber#i};
 	    lenCC := 0;
 	    while lenCC != #cc do(
-		if #cc > 1 then bigCCfound = i;
                 lenCC = #cc;
                 for move in validMoves do(
                     cc = set flatten for el in keys cc list(
@@ -132,8 +129,7 @@ fastFiberGraphInternal(Matrix, Matrix) := (A, starterMarkovBasis) -> (
                     );
                 );
 	    toList cc
-	    );
-	switch(0,bigCCfound,fiber)
+	    )
 	);
     );
 
@@ -307,9 +303,13 @@ countMarkov Matrix := A -> (
         CheckInput => true,
         Algorithm => "fast");
     product for fiberConnectedComponents in allFibersConnectedComponents list(
-        n := #fiberConnectedComponents;
-	m := #fiberConnectedComponents#0;
-	m*(m+n-1)^(n-2)
+        k := #fiberConnectedComponents;
+        if k==2 then continue #fiberConnectedComponents#0 * #fiberConnectedComponents#1;
+        ccSizes := (v -> #v) \ fiberConnectedComponents;
+        R := ZZ(monoid[Variables => k]);
+        G := gens R;
+        g := (product for x in G list x)*(sum for pair in multiSubsets(toList(0..k-1),k-2) list product for e in pair list G_e);
+        g(toSequence ccSizes)
         )
     )
 
@@ -323,7 +323,8 @@ toricIndispensableSet Matrix := A -> (
     indispensables := flatten for vertexList in fiberComponents list (
         if (
             #vertexList == 2 and
-            #vertexList#0 == 1
+            #vertexList#0 == 1 and
+	    #vertexList#1 == 1
             ) then vertexList#0 - vertexList#1 else continue
         );
     matrix indispensables
