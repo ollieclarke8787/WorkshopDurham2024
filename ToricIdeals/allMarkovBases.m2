@@ -780,9 +780,9 @@ doc ///
 
 TEST /// -- unique minimal Markov basis for monomial curve in A^3
 assert(
-    set entries (markovBases matrix "3,4,5")_0
+    set flatten ((v -> {v,-v}) \ entries (markovBases matrix "3,4,5")_0)
     ==
-    set entries toricMarkov matrix "3,4,5"
+    set flatten ((v -> {v,-v}) \ entries toricMarkov matrix "3,4,5")
     )
 ///
 
@@ -791,18 +791,22 @@ assert(countMarkov matrix "3,4,5" == 1)
 ///
 
 TEST /// -- two minimal Markov bases for (CI) monomial curve in A^3
+result := {
+    {{2,-1,0},{3,0,-1}},
+    {{2,-1,0},{1,1,-1}}};
 assert(
-    set apply(markovBases matrix "1,2,3", A -> set entries A)
+    set((A -> set flatten ((v -> {v,-v}) \ entries A)) \ markovBases matrix "1,2,3")
     ==
-    set {set {{2,-1,0},{3,0,-1}}, set {{2,-1,0},{1,1,-1}}}
+    set((A -> set flatten ((v -> {v,-v}) \ A)) \ result)
     )
 ///
 
 TEST /// -- hypersurface in A^3
+result := {{1,-2,1}};
 assert(
-    set entries (markovBases matrix "1,2,3;4,5,6")_0
+    set flatten ((v -> {v,-v}) \ entries (markovBases matrix "1,2,3;4,5,6")_0)
     ==
-    set {{1,-2,1}}
+    set flatten ((v -> {v,-v}) \ result)
     )
 ///
 
@@ -814,53 +818,60 @@ result := {
     {{-5, 2, 0},{5, 6, -1}},
     {{-5, 2, 0},{0, 8, -1}}};
 assert(
-    set apply(markovBases matrix "2,5,40", A -> set entries A)
+    set((A -> set flatten ((v -> {v,-v}) \ entries A)) \ markovBases matrix "2,5,40")
     ==
-    set apply(result,set)
+    set((A -> set flatten ((v -> {v,-v}) \ A)) \ result)
     )
 ///
 
 TEST ///
+result := {{2,0,-1}};
 assert(
-    toricIndispensableSet matrix "2,3,4"
+    set flatten ((v -> {v,-v}) \ entries toricIndispensableSet matrix "2,3,4")
     ==
-    matrix "2,0,-1"
+    set flatten ((v -> {v,-v}) \ result)
     )
 ///
 
 TEST ///
+result := {
+    {1, -2, 1, 0},
+    {1, -1, -1, 1},
+    {0, 1, -2, 1},
+    {-3, -1, 1, 2}};
 assert(
-    set entries toricIndispensableSet matrix "7,8,9,10"
+    set flatten ((v -> {v,-v}) \ entries toricIndispensableSet matrix "7,8,9,10")
     ==
-    set {{1, -2, 1, 0},
-	{1, -1, -1, 1},
-	{0, 1, -2, 1},
-	{-3, -1, 1, 2}}
+    set flatten ((v -> {v,-v}) \ result)
     )
 ///
 
 TEST ///
+result := {
+    {1, -2, 1},
+    {2, 0, -1},
+    {3, -2, 0}};
 assert(
-    set entries toricUniversalMarkov matrix "2,3,4"
+    set flatten ((v -> {v,-v}) \ entries toricUniversalMarkov matrix "2,3,4")
     ==
-    set {{1, -2, 1},
-	{2, 0, -1},
-	{3, -2, 0}}
+    set flatten ((v -> {v,-v}) \ result)
     )
 ///
 
 TEST ///
+result := {
+    {-4, 0, 2, 1},
+    {-4, 1, 0, 2},
+    {-3, -1, 1, 2},
+    {0, 1, -2, 1},
+    {1, -1, -1, 1},
+    {1, -2, 1, 0},
+    {2, 2, 0, -3},
+    {3, 0, 1, -3}};
 assert(
-    set entries toricUniversalMarkov matrix "7,8,9,10"
+    set flatten ((v -> {v,-v}) \ entries toricUniversalMarkov matrix "7,8,9,10")
     ==
-    set {{-4, 0, 2, 1},
-	{-4, 1, 0, 2},
-	{-3, -1, 1, 2},
-	{0, 1, -2, 1},
-	{1, -1, -1, 1},
-	{1, -2, 1, 0},
-	{2, 2, 0, -3},
-	{3, 0, 1, -3}}
+    set flatten ((v -> {v,-v}) \ result)
     )
 ///
 
