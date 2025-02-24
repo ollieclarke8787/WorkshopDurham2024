@@ -4,14 +4,14 @@ newPackage(
     Date => "",
     Headline => "A package for Ehrhart theory of rational polytopes",
     Authors => {
-	{Name => "Oliver Clarke", Email => "oliver.clarke@ed.ac.uk", HomePage => "https://www.oliverclarkemath.com/"},
-	{Name => "Alex Milner", Email => "A.J.C.Milner@sms.ed.ac.uk", HomePage => ""},
-	{Name => "Victoria Schleis", Email => "victoria.m.schleis@durham.ac.uk", HomePage => "https://victoriaschleis.github.io/"},
-	{Name => "Vincenzo Reda", Email => "redav@tcd.ie", HomePage => ""},
-	{Name => "Benoît Guerville-Ballé", Email => "benoit.guerville-balle@math.cnrs.fr", HomePage => "https://www.benoit-guervilleballe.com"}
-	},
+        {Name => "Oliver Clarke", Email => "oliver.clarke@ed.ac.uk", HomePage => "https://www.oliverclarkemath.com/"},
+        {Name => "Alex Milner", Email => "A.J.C.Milner@sms.ed.ac.uk", HomePage => ""},
+        {Name => "Victoria Schleis", Email => "victoria.m.schleis@durham.ac.uk", HomePage => "https://victoriaschleis.github.io/"},
+        {Name => "Vincenzo Reda", Email => "redav@tcd.ie", HomePage => ""},
+        {Name => "Benoît Guerville-Ballé", Email => "benoit.guerville-balle@math.cnrs.fr", HomePage => "https://www.benoit-guervilleballe.com"}
+        },
     AuxiliaryFiles => false,
-    DebuggingMode => true,
+    DebuggingMode => false,
     PackageExports => {"Polyhedra", "Normaliz"}
     )
 
@@ -28,18 +28,18 @@ export {
     "coefficientMonomial",
     "ehrhartSeries",
     "ReturnDenominator",
-		"Backend"
+    "Backend"
     }
 
 
 -- define the denominator of polyhedron to be the lcm of all denominators of
 -- coordinates of its vertices
 denominator Polyhedron := P -> (
-		if not P.cache#?"denominator" then (
-				P.cache#"denominator" = lcm for j in flatten entries vertices P list denominator promote(j,QQ);
-				);
-		P.cache#"denominator"
-		)
+    if not P.cache#?"denominator" then (
+        P.cache#"denominator" = lcm for j in flatten entries vertices P list denominator promote(j,QQ);
+        );
+    P.cache#"denominator"
+    )
 
 -* QuasiPolynomial Type *-
 
@@ -50,10 +50,10 @@ isPeriod(Matrix,ZZ) := (M,q) -> (
     result:=true;
     if numRows M%q!=0 then result=false;
     if numRows M%q==0 then (
-	for j from 0 to numRows M//q-1 do(
-	    if M^(toList(0 .. q-1))!=M^(toList((j*q .. (j+1)*q-1))) then result=false;
-	    );
-	);
+        for j from 0 to numRows M//q-1 do(
+            if M^(toList(0 .. q-1))!=M^(toList((j*q .. (j+1)*q-1))) then result=false;
+            );
+        );
     result
     )
 
@@ -61,11 +61,11 @@ cleaning = method()
 cleaning(Matrix) := M-> (
     q:=0;
     for p from 1 to numRows M-1 do(
-	if isPeriod(M,p) then q=p;
-    );
+        if isPeriod(M,p) then q=p;
+        );
     if q!=0 then (
-	M=submatrix'(M,toList(q .. numRows M-1),);
-	);
+        M=submatrix'(M,toList(q .. numRows M-1),);
+        );
     M
     )
 
@@ -78,31 +78,31 @@ quasiPolynomial = method()
 quasiPolynomial(Matrix) := M -> (
     Mclean:=cleaning(M);
     new QuasiPolynomial from {
-	period => numRows(Mclean),
-	coefficients => Mclean,
-	cache => new CacheTable,
-	}
+        period => numRows(Mclean),
+        coefficients => Mclean,
+        cache => new CacheTable,
+        }
     )
 
 net QuasiPolynomial := QP -> (
     "QuasiPolynomial of degree " | net(numColumns(QP#coefficients)-1) | " and of period " | net(QP#period)
-)
+    )
 
 
 quasiPolynomial(List) := L -> (
     if not isMember(false, for l in L list instance(l,List)) then (
-	D:=max for p in L list length p;
-	L1:=for p in L list ((for i in 0..D-length p -1 list 0)|p);
-	quasiPolynomial(matrix(L1))
-	)
+        D:=max for p in L list length p;
+        L1:=for p in L list ((for i in 0..D-length p -1 list 0)|p);
+        quasiPolynomial(matrix(L1))
+        )
     else if not isMember(false, for l in L list instance(class l,PolynomialRing)) then(
-	if not isMember(false, for l in L list numgens class l==1) then (
-	    D1:=max for p in L list (degree p)#0;
-	    lM:=for p in L list sub( (coefficients(p, Monomials=>for d in 0..D1 list ((generators class p)#0)^(D1-d)))#1, QQ);
-	    M:=transpose fold((a,b) -> a|b, lM);
-	    quasiPolynomial(M)
-	    )
-	)
+        if not isMember(false, for l in L list numgens class l==1) then (
+            D1:=max for p in L list (degree p)#0;
+            lM:=for p in L list sub( (coefficients(p, Monomials=>for d in 0..D1 list ((generators class p)#0)^(D1-d)))#1, QQ);
+            M:=transpose fold((a,b) -> a|b, lM);
+            quasiPolynomial(M)
+            )
+        )
     )
 
 -- note that we can borrow === function to determine equality of QP's because we
@@ -114,7 +114,7 @@ QuasiPolynomial == QuasiPolynomial := (QP1, QP2) -> QP1 === QP2
 
 QuasiPolynomial ZZ := (QP, v) -> (
     internalQuasiPolynomial(QP,v)
-)
+    )
 
 internalQuasiPolynomial = method()
 internalQuasiPolynomial(QuasiPolynomial, ZZ) := (QP,t) -> (
@@ -165,10 +165,10 @@ Ehrhart (Polyhedron,ZZ):=(P, i) -> (
     if n==0 and (not isEmpty P) then return 1+0*x;
     if isEmpty P then return 0+0*x;
     v:=matrix apply(S,h->(
-	    if h == 0 then {0}
-	    else {-1+#latticePoints(h*P)}
-	    )
-	);
+            if h == 0 then {0}
+            else {-1+#latticePoints(h*P)}
+            )
+        );
     v=promote(v,QQ);
     M:=promote(matrix apply(S,a->reverse apply(n+1,j->( a^j ))),QQ);
     M=flatten entries((inverse M)*v);
@@ -179,60 +179,60 @@ Ehrhart (Polyhedron,ZZ):=(P, i) -> (
 
 
 EhrhartQP = method(
-		Options => {
-				Backend => "Normaliz" -- Normaliz or M2
-				}
-		)
+    Options => {
+        Backend => "Normaliz" -- Normaliz or M2
+        }
+    )
 
 EhrhartQP Polyhedron := opts -> P -> (
-		if not P#cache#?"EhrhartQP" then (
-				QP := if opts.Backend == "Normaliz" then (
-						EhrhartQPNormaliz P
-						)
-				else if opts.Backend == "M2" then (
-						EhrhartQPM2 P
-						)
-				else error("Unknown Backend");
-				QP#cache#"OriginalPolyhedron" = P;
-				P#cache#"EhrhartQP" = QP;
-				);
-		P#cache#"EhrhartQP"
+    if not P#cache#?"EhrhartQP" then (
+        QP := if opts.Backend == "Normaliz" then (
+            EhrhartQPNormaliz P
+            )
+        else if opts.Backend == "M2" then (
+            EhrhartQPM2 P
+            )
+        else error("Unknown Backend");
+        QP#cache#"OriginalPolyhedron" = P;
+        P#cache#"EhrhartQP" = QP;
+        );
+    P#cache#"EhrhartQP"
     )
 
 EhrhartQPM2 = method()
 EhrhartQPM2 Polyhedron := P -> (
-		k := denominator P;
-	  quasiPolynomial(for i from 0 to k-1 list Ehrhart(P,i))
-		)
+    k := denominator P;
+    quasiPolynomial(for i from 0 to k-1 list Ehrhart(P,i))
+    )
 
 -- use the EhrharhtSeries of P (computed with Normaliz)
 -- to construct the Quasi-Polynomial
 
 EhrhartQPNormaliz = method()
 EhrhartQPNormaliz Polyhedron := P -> (
-		ES := ehrhartSeries(P, Backend => "Normaliz");
-		R := ring ES;
-		t := R_0;
-		n := dim P;
-		k := denominator P;
-		latticePointCounts := for i from 0 to (n+1)*k -1 list (
-				numberOfLatticePoints := ES(0);
-				ES = (ES - numberOfLatticePoints)/t;
-				numberOfLatticePoints
-				);
-		R' := QQ[getSymbol "x"];
+    ES := ehrhartSeries(P, Backend => "Normaliz");
+    R := ring ES;
+    t := R_0;
+    n := dim P;
+    k := denominator P;
+    latticePointCounts := for i from 0 to (n+1)*k -1 list (
+        numberOfLatticePoints := ES(0);
+        ES = (ES - numberOfLatticePoints)/t;
+        numberOfLatticePoints
+        );
+    R' := QQ[getSymbol "x"];
     x := R'_0;
-		QuasiPolyList := for i from 0 to k-1 list (
-				S:=for j from 0 to n list i+j*k;
-				if n==0 and (not isEmpty P) then return 1+0*x;
-				if isEmpty P then return 0+0*x;
-				v := matrix(QQ, apply(S,h -> {-1+latticePointCounts_h}));
-				M := matrix(QQ, apply(S,a -> reverse apply(n+1,j ->  a^j )));
-				M = flatten entries((inverse M)*v);
-				1 + sum apply(n+1 , a -> M_a*x^(n-a))
-				);
-		quasiPolynomial(QuasiPolyList)
-		)
+    QuasiPolyList := for i from 0 to k-1 list (
+        S:=for j from 0 to n list i+j*k;
+        if n==0 and (not isEmpty P) then return 1+0*x;
+        if isEmpty P then return 0+0*x;
+        v := matrix(QQ, apply(S,h -> {-1+latticePointCounts_h}));
+        M := matrix(QQ, apply(S,a -> reverse apply(n+1,j ->  a^j )));
+        M = flatten entries((inverse M)*v);
+        1 + sum apply(n+1 , a -> M_a*x^(n-a))
+        );
+    quasiPolynomial(QuasiPolyList)
+    )
 
 
 
@@ -242,48 +242,48 @@ EhrhartQPNormaliz Polyhedron := P -> (
 -- For the M2 and Normaliz versions have different denominators - can they
 -- be uniformised?
 hStar = method(
-		Options => {
-				ReturnDenominator => false, --returns a pair of polys (h, d) s.t. Ehrhart series is h/d
-				Backend => "Normaliz" -- either Normaliz or M2
-				})
+    Options => {
+        ReturnDenominator => false, --returns a pair of polys (h, d) s.t. Ehrhart series is h/d
+        Backend => "Normaliz" -- either Normaliz or M2
+        })
 
 hStar(Polyhedron, Ring) := opts -> (P, R) -> (
-		if not P#cache#?"EhrhartSeriesNumerator" then (
-				if opts.Backend == "M2" then (
-						hStarM2(P, R);
-						)
-				else if opts.Backend == "Normaliz" then (
-						hStarNormaliz(P, R);
-						)
-				else error("unknown Backend option: " | toString opts.Backend);
-				);
-		if opts.ReturnDenominator then (
-				P#cache#"EhrhartSeriesNumerator",
-				P#cache#"EhrhartSeriesDenominator"
-				)
-		else P#cache#"EhrhartSeriesNumerator"
-		)
+    if not P#cache#?"EhrhartSeriesNumerator" then (
+        if opts.Backend == "M2" then (
+            hStarM2(P, R);
+            )
+        else if opts.Backend == "Normaliz" then (
+            hStarNormaliz(P, R);
+            )
+        else error("unknown Backend option: " | toString opts.Backend);
+        );
+    if opts.ReturnDenominator then (
+        P#cache#"EhrhartSeriesNumerator",
+        P#cache#"EhrhartSeriesDenominator"
+        )
+    else P#cache#"EhrhartSeriesNumerator"
+    )
 
 hStar(Polyhedron) := opts -> P -> (
-		R:=QQ[getSymbol "t"]; -- potentially redundant if hStar has already been computed
-		hStar(P, R, opts)
-		)
+    R:=QQ[getSymbol "t"]; -- potentially redundant if hStar has already been computed
+    hStar(P, R, opts)
+    )
 
 -- M2 version of hStar polynomial
 -- once computed, it updates the cache
 hStarM2 = method()
 hStarM2(Polyhedron, Ring) := (P, R) -> (
-		n:=dim P;
-		dnom := lcm for i in flatten entries vertices P list denominator promote(i,QQ);
-		p:=1;
-		t:=R_0;
-		for i from 1 to (n+1)*dnom do (p=p + #latticePoints(i*P) * t^i);
-		r:=(1-t^dnom)^(n+1);
-		f := (p*r) % t^((n+1)*dnom);
-		P#cache#"EhrhartSeriesNumerator" = f;
-		P#cache#"EhrhartSeriesDenominator" = r;
-		(f, r)
-		)
+    n:=dim P;
+    dnom := lcm for i in flatten entries vertices P list denominator promote(i,QQ);
+    p:=1;
+    t:=R_0;
+    for i from 1 to (n+1)*dnom do (p=p + #latticePoints(i*P) * t^i);
+    r:=(1-t^dnom)^(n+1);
+    f := (p*r) % t^((n+1)*dnom);
+    P#cache#"EhrhartSeriesNumerator" = f;
+    P#cache#"EhrhartSeriesDenominator" = r;
+    (f, r)
+    )
 
 
 -- Normaliz version of hStar polynomial
@@ -292,35 +292,35 @@ hStarM2(Polyhedron, Ring) := (P, R) -> (
 -- WARNING: the denominator of the hstar might not be the usual one!
 hStarNormaliz = method()
 hStarNormaliz(Polyhedron, Ring) := (P, R) -> (
-		t := R_0;
-		C := normaliz(transpose vertices P, "polytope"); -- Maybe all of this data can be stored for later use
-		numeratorCoefficients := C#"inv"#"hilbert series num";
-		denominatorFactors := C#"inv"#"hilbert series denom";
-		f := sum for i from 0 to #numeratorCoefficients -1 list (numeratorCoefficients#i) * t^i;
-		r := product for i from 0 to #denominatorFactors -1 list 1 - t^(denominatorFactors#i);
-		P#cache#"EhrhartSeriesNumerator" = f;
-		P#cache#"EhrhartSeriesDenominator" = r;
-		(f, r)
-		)
+    t := R_0;
+    C := normaliz(transpose vertices P, "polytope"); -- Maybe all of this data can be stored for later use
+    numeratorCoefficients := C#"inv"#"hilbert series num";
+    denominatorFactors := C#"inv"#"hilbert series denom";
+    f := sum for i from 0 to #numeratorCoefficients -1 list (numeratorCoefficients#i) * t^i;
+    r := product for i from 0 to #denominatorFactors -1 list 1 - t^(denominatorFactors#i);
+    P#cache#"EhrhartSeriesNumerator" = f;
+    P#cache#"EhrhartSeriesDenominator" = r;
+    (f, r)
+    )
 
 
 ehrhartSeries = method(
-		Options => {
-				Backend => "Normaliz" -- Normaliz or M2
-				}
-		)
+    Options => {
+        Backend => "Normaliz" -- Normaliz or M2
+        }
+    )
 
 ehrhartSeries(Polyhedron, Ring) := opts -> (P, R) -> (
-		if not P#cache#?"EhrhartSeries" then (
-				(h, d) := hStar(P, R, ReturnDenominator => true, Backend => opts.Backend);
-				R' := ring h; -- if R' =!= R then we previously constructed R' so we should ignore R
-				F := frac R';
-				h = h_F;
-				d = d_F;
-				P#cache#"EhrhartSeries" = h/d;
-				);
-		P#cache#"EhrhartSeries"
-		)
+    if not P#cache#?"EhrhartSeries" then (
+        (h, d) := hStar(P, R, ReturnDenominator => true, Backend => opts.Backend);
+        R' := ring h; -- if R' =!= R then we previously constructed R' so we should ignore R
+        F := frac R';
+        h = h_F;
+        d = d_F;
+        P#cache#"EhrhartSeries" = h/d;
+        );
+    P#cache#"EhrhartSeries"
+    )
 
 ehrhartSeries Polyhedron := opts -> P -> (
     ehrhartSeries(P, QQ[getSymbol "t"], opts)
@@ -338,25 +338,25 @@ debug Normaliz
 doWriteNmzData = method()
 -- writes several matrices in a normaliz input file
 doWriteNmzData List := matrices -> (
-		checkNmzFile("doWriteNmzData");
-		outf := nmzFile | ".in" << "";
-		for p in matrices do (
-				sgr := p#0;
-				nmzMode := p#1;
-				outf << numRows sgr << endl;
-				outf << numColumns sgr << endl;
-				if ring sgr =!= ZZ and ring sgr =!= QQ then error("matrix with non-rational entries");
-				for i from 0 to numRows sgr - 1 do (
-						s:= "";
-						for j from 0 to numColumns sgr - 1
-						do s = s | toString(sgr_(i,j)) | " "; -- MODIFIED: this handles ZZ and QQ entries
-						outf << s << endl;
-						);
-				--Until version 3.9.4, input type normal_toric_ideal was called lattice_ideal
-				if normalizProgram#"version" < "3.10" and nmzMode == "normal_toric_ideal" then nmzMode = "lattice_ideal";
-				outf << nmzMode << endl);
-		outf << close
-		)
+    checkNmzFile("doWriteNmzData");
+    outf := nmzFile | ".in" << "";
+    for p in matrices do (
+        sgr := p#0;
+        nmzMode := p#1;
+        outf << numRows sgr << endl;
+        outf << numColumns sgr << endl;
+        if ring sgr =!= ZZ and ring sgr =!= QQ then error("matrix with non-rational entries");
+        for i from 0 to numRows sgr - 1 do (
+            s:= "";
+            for j from 0 to numColumns sgr - 1
+            do s = s | toString(sgr_(i,j)) | " "; -- MODIFIED: this handles ZZ and QQ entries
+            outf << s << endl;
+            );
+        --Until version 3.9.4, input type normal_toric_ideal was called lattice_ideal
+        if normalizProgram#"version" < "3.10" and nmzMode == "normal_toric_ideal" then nmzMode = "lattice_ideal";
+        outf << nmzMode << endl);
+    outf << close
+    )
 
 ---------------------------------------
 -* Documentation section *-
@@ -420,6 +420,8 @@ doc ///
 doc ///
   Key
     hStar
+    [hStar, Backend]
+    [hStar, ReturnDenominator]
   Headline
     a method
   Usage
@@ -430,6 +432,11 @@ doc ///
       A convex polyhedron which must be compact
     R : Ring
       A ring in one variable
+    ReturnDenominator => Boolean
+      whether to return also the denominator of the Ehrhart series
+    Backend => String
+      either "Normaliz" or "M2", selects the method for computing
+      the ehrhart series
   Outputs
     f : RingElement
       the hStar polynomial (in the ring R) of the input Polytope
