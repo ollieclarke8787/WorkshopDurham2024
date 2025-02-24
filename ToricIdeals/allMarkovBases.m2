@@ -13,7 +13,7 @@ newPackage(
             HomePage => "https://www.oliverclarkemath.com/"}
         },
     AuxiliaryFiles => false,
-    DebuggingMode => true,
+    DebuggingMode => false,
     PackageExports => {"FourTiTwo","Graphs","TensorComplexes"}
     )
 
@@ -99,31 +99,30 @@ fastFiberGraphInternal(Matrix, Matrix) := (A, starterMarkovBasis) -> (
     n := numColumns A;
     fiberStarters := new MutableHashTable;
     fiberValues := new MutableHashTable;
-    revFiberValues := new MutableHashTable;
     for basis in starterMarkovBasis do(
         elPos := for coord in basis list(if coord >= 0 then coord else 0);
         elNeg := elPos - basis;
 	fiberVal := flatten entries (A * transpose matrix{elPos});
 	if fiberStarters#?fiberVal then (fiberStarters#fiberVal)##(fiberStarters#fiberVal) = {elPos,elNeg} else fiberStarters#fiberVal = new MutableList from {{elPos,elNeg}};
-        if revFiberValues#?fiberVal then (revFiberValues#fiberVal)##(revFiberValues#fiberVal) = position(starterMarkovBasis,z -> z == basis) else revFiberValues#fiberVal = new MutableList from {position(starterMarkovBasis,z -> z == basis)};
         fiberValues#basis = fiberVal;
         );
 
     A.cache#"FiberGraphComponents" = for val in keys fiberStarters list(
         validMoves := for move in starterMarkovBasis list if (fiberValues#move << val) and (fiberValues#move != val) then move else continue;
+	validMoves = new MutableHashTable from ((v -> {v,true}) \ validMoves);
 	buildFiber := toList set flatten toList fiberStarters#val;
-	if #buildFiber != #revFiberValues#val+1 then error("toricMarkov has returned something unexpected - please change the Algorithm option to graph");
 	for i from 0 to #buildFiber - 1 list(
 	    cc := set {buildFiber#i};
 	    lenCC := 0;
+	    movesUnused := for kvs in pairs validMoves list if kvs#1 then kvs#0 else continue;
 	    while lenCC != #cc do(
                 lenCC = #cc;
-                for move in validMoves do(
+                for move in movesUnused do(
                     cc = set flatten for el in keys cc list(
                         flatten for checkIndex in {1,0,-1} list(
                             if checkIndex == 0 then continue {el};
                             n := checkIndex;
-                            while all(el+n*move, z -> z >= 0) list el+n*move do n = n + checkIndex
+                            while all(el+n*move, z -> z >= 0) list (el+n*move) do (validMoves#move = false; n = n + checkIndex)
                             )
                         );
                     );
