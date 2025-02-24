@@ -40,8 +40,6 @@ export {
 ----------
 
 
-
-
 fiberGraph = method(
     Options => {
         ReturnConnectedComponents => false,
@@ -102,20 +100,20 @@ fastFiberGraphInternal(Matrix, Matrix) := (A, starterMarkovBasis) -> (
     for basis in starterMarkovBasis do(
         elPos := for coord in basis list(if coord >= 0 then coord else 0);
         elNeg := elPos - basis;
-	fiberVal := flatten entries (A * transpose matrix{elPos});
-	if fiberStarters#?fiberVal then (fiberStarters#fiberVal)##(fiberStarters#fiberVal) = {elPos,elNeg} else fiberStarters#fiberVal = new MutableList from {{elPos,elNeg}};
+        fiberVal := flatten entries (A * transpose matrix{elPos});
+        if fiberStarters#?fiberVal then (fiberStarters#fiberVal)##(fiberStarters#fiberVal) = {elPos,elNeg} else fiberStarters#fiberVal = new MutableList from {{elPos,elNeg}};
         fiberValues#basis = fiberVal;
         );
 
     A.cache#"FiberGraphComponents" = for val in keys fiberStarters list(
         validMoves := for move in starterMarkovBasis list if (fiberValues#move << val) and (fiberValues#move != val) then move else continue;
-	validMoves = new MutableHashTable from ((v -> {v,true}) \ validMoves);
-	buildFiber := toList set flatten toList fiberStarters#val;
-	for i from 0 to #buildFiber - 1 list(
-	    cc := set {buildFiber#i};
-	    lenCC := 0;
-	    movesUnused := for kvs in pairs validMoves list if kvs#1 then kvs#0 else continue;
-	    while lenCC != #cc do(
+        validMoves = new MutableHashTable from ((v -> {v,true}) \ validMoves);
+        buildFiber := toList set flatten toList fiberStarters#val;
+        for i from 0 to #buildFiber - 1 list(
+            cc := set {buildFiber#i};
+            lenCC := 0;
+            movesUnused := for kvs in pairs validMoves list if kvs#1 then kvs#0 else continue;
+            while lenCC != #cc do(
                 lenCC = #cc;
                 for move in movesUnused do(
                     cc = set flatten for el in keys cc list(
@@ -127,9 +125,9 @@ fastFiberGraphInternal(Matrix, Matrix) := (A, starterMarkovBasis) -> (
                         );
                     );
                 );
-	    toList cc
-	    )
-	);
+            toList cc
+            )
+        );
     );
 
 
@@ -287,7 +285,6 @@ randomMarkov Matrix := opts -> A -> (
     );
 
 
-
 randomMarkov(Matrix, Ring) := opts -> (A, R) -> (
     listOfBases := randomMarkov(A, NumberOfBases => opts.NumberOfBases, AlwaysReturnList => true, CheckInput => opts.CheckInput);
     listOfIdeals := apply(listOfBases, B -> toBinomial(B, R));
@@ -305,10 +302,7 @@ countMarkov Matrix := A -> (
         k := #fiberConnectedComponents;
         if k==2 then continue #fiberConnectedComponents#0 * #fiberConnectedComponents#1;
         ccSizes := (v -> #v) \ fiberConnectedComponents;
-        R := ZZ(monoid[Variables => k]);
-        G := gens R;
-        g := (product for x in G list x)*(sum for pair in multiSubsets(toList(0..k-1),k-2) list product for e in pair list G_e);
-        g(toSequence ccSizes)
+        (product ccSizes) * (sum ccSizes)^(k-2)
         )
     )
 
@@ -318,12 +312,12 @@ toricIndispensableSet Matrix := A -> (
     fiberComponents := fiberGraph(A,
         ReturnConnectedComponents => true,
         CheckInput => true,
-	Algorithm => "fast");
+        Algorithm => "fast");
     indispensables := flatten for vertexList in fiberComponents list (
         if (
             #vertexList == 2 and
             #vertexList#0 == 1 and
-	    #vertexList#1 == 1
+            #vertexList#1 == 1
             ) then vertexList#0 - vertexList#1 else continue
         );
     matrix indispensables
@@ -340,7 +334,7 @@ toricUniversalMarkov Matrix := A -> (
     fiberComponents := fiberGraph(A,
         ReturnConnectedComponents => true,
         CheckInput => true,
-	Algorithm => "fast");
+        Algorithm => "fast");
     matrix flatten for vertexList in fiberComponents list (
         flatten for pairsOfVertices in subsets(vertexList, 2) list (
             for movePairs in listProd pairsOfVertices list (
