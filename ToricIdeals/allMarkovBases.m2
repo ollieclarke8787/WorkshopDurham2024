@@ -5,7 +5,7 @@ newPackage(
     Headline => "package for computing all minimal Markov bases
     of a configuration matrix",
     Authors => {
-        {Name => "Alex Milner",
+        {Name => "Alexander Milner",
             Email => "A.J.C.Milner@sms.ed.ac.uk",
             HomePage => "https://alexandermilner.github.io/"},
         {Name => "Oliver Clarke",
