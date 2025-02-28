@@ -6,4 +6,4 @@ This repository contains:
 
 To load the package in Macaulay2, run
 
-  loadPackage "allMarkovBases";
+    loadPackage "allMarkovBases";
