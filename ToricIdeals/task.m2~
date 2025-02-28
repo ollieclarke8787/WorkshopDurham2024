@@ -1,6 +1,0 @@
--*
-given a matrix A of integers
-return the list of minimal generating sets of the toric ideal of A
-
-
-*-
