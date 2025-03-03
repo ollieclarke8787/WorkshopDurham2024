@@ -85,7 +85,9 @@ quasiPolynomial(Matrix) := M -> (
     )
 
 net QuasiPolynomial := QP -> (
-    "QuasiPolynomial of degree " | net(numColumns(QP#coefficients)-1) | " and of period " | net(QP#period)
+    description := "QuasiPolynomial of degree " | net(numColumns(QP#coefficients)-1) | " and of period " | net(QP#period);
+    display := net displayQP(QP, Truncate => 5);
+    stack {description, display}
     )
 
 
@@ -126,13 +128,43 @@ internalQuasiPolynomial(QuasiPolynomial, ZZ) := (QP,t) -> (
 
 -- Various methods associated to a QuasiPolynomial
 
-displayQP = method()
-displayQP(QuasiPolynomial) := QP -> (
-    R:=QQ[getSymbol "t"];
-    t1:=(gens R)#0;
-    Mono := flatten  for d in 0..(numColumns QP#coefficients)-1 list {" + ", (QP#coefficients)_(d),t1^(numColumns (QP#coefficients)-d-1)};
-    fold((a,b) -> net a | net b , take(Mono,{1,length(Mono)-2}))
+-- display the QuasiPolynomial in a friendly way
+displayQP = method(
+    Options => {
+        Truncate => null -- null or integer
+        }
     )
+displayQP(QuasiPolynomial) := opts -> QP -> (
+    R := monoid[getSymbol "t"];
+    t := R_0;
+    if opts.Truncate === null or QP.period <= opts.Truncate or opts.Truncate < 3 then (
+        sum for d in 0 .. (numColumns QP#coefficients)-1 list (
+            -- the leading coefficient is a constant so we could use this instead:
+            --(if d > 0 then (QP#coefficients)_{d} else (QP#coefficients)_{d}^{0}
+            --    ) expression if d < (numColumns QP#coefficients)-1 then (
+            --    t^(numColumns (QP#coefficients)-d-1)
+
+            (QP#coefficients)_{d} expression if d < (numColumns QP#coefficients)-1 then (
+                t^(numColumns (QP#coefficients)-d-1)
+                )
+            else ""
+            )
+        )
+    else (
+        sum for d in 0 .. (numColumns QP#coefficients)-1 list (
+            M := (QP#coefficients)_{d};
+            Mcut := M^{0 .. opts.Truncate - 3, numRows QP#coefficients - 1};
+            Mnet := net Mcut;
+            netRows := (for i from 0 to opts.Truncate - 3 list Mnet#i) | {
+                "| " | concatenate(width Mnet - 4: ".") | " |"} | {Mnet#(-1)};
+            (stack netRows) expression if d < (numColumns QP#coefficients)-1 then (
+                t^(numColumns (QP#coefficients)-d-1)
+                )
+            else ""
+            )
+        )
+    )
+
 
 degree(QuasiPolynomial) := QP -> (
     numColumns(QP#coefficients)-1
@@ -248,6 +280,7 @@ hStar = method(
         })
 
 hStar(Polyhedron, Ring) := opts -> (P, R) -> (
+    if numgens R < 1 then error("ring must have at least one generator");
     if not P#cache#?"EhrhartSeriesNumerator" then (
         if opts.Backend == "M2" then (
             hStarM2(P, R);
@@ -420,10 +453,12 @@ doc ///
 doc ///
   Key
     hStar
+    (hStar, Polyhedron)
+    (hStar, Polyhedron, Ring)
     [hStar, Backend]
     [hStar, ReturnDenominator]
   Headline
-    a method
+    the $h^*$-polynomial of a polytope
   Usage
     hStar P
     hStar(P,R)
@@ -431,24 +466,42 @@ doc ///
     P : Polyhedron
       A convex polyhedron which must be compact
     R : Ring
-      A ring in one variable
+      A ring in at least one variable
     ReturnDenominator => Boolean
-      whether to return also the denominator of the Ehrhart series
+      whether to return the denominator of the Ehrhart series
     Backend => String
       either "Normaliz" or "M2", selects the method for computing
-      the ehrhart series
+      the Ehrhart series
   Outputs
     f : RingElement
-      the hStar polynomial (in the ring R) of the input Polytope
+      the $h^*$-polynomial (in the ring R) of $P$
   Description
     Text
-      Computes the hStar polynomial of a polytope
+      If $P$ is a lattice polytope then this function returns the
+      $h^*$-polynomial of $P$.
     Example
-      hStar convexHull transpose matrix "0; 1/2"
-      hStar convexHull transpose matrix "0,0,0;1,0,0;0,1,0;0,0,1"
-      hStar convexHull transpose matrix "1,0;-1,0;0,1/2;0,-1/2"
+      hStar convexHull transpose matrix "-1,0; 0,-1; 1,0; 0,1"
+    Text
+      Otherwise if $P$ is a rational polytope then the behavior
+      may give unexpected results because the calculation of
+      the Ehrhart series (see @TO ehrhartSeries@) may use
+      a denominator that is different to the expected one.
+    Example
+      hStar(convexHull transpose matrix "0; 1/2", Backend => "Normaliz")
+      hStar(convexHull transpose matrix "0; 1/2", Backend => "M2")
+    Text
+      To return the denominator of the Ehrhart series, set the
+      optional argument @TO ReturnDenominator@ to @TT "true"@.
+      In this case, the result is a pair that forms the numerator
+      and denominator of the Ehrhart series.
+    Example
+      hStar(convexHull transpose matrix "0; 1/2",
+          Backend => "Normaliz", ReturnDenominator => true)
+      hStar(convexHull transpose matrix "0; 1/2",
+          Backend => "M2", ReturnDenominator => true)
   SeeAlso
     RationalPolytopes
+    ehrhartSeries
 ///
 
 doc ///
@@ -568,8 +621,11 @@ end--
 -- note that the Polyhedron type is just a hashtable with a single entry: cache
 
 
--- check the definition of hStart polynomial in literature and check whether the denominator of the Ehrhart series is:
+-- check the definition of hStar polynomial in literature and check whether the denominator of the Ehrhart series is:
 -- (1 - t^(denominator P))^(dim P)  or  (1 - t^(period P))^(dim P)
+-- Answer:
+--   in the literature, authors typically do not define a denominator / hstar polynomial for rational polytopes
+--
 
 
 -- simplify the names of functions: E.g. EhrhartQP -> ehrhart (overriding the one in Polyhedra)
@@ -648,7 +704,7 @@ debug RationalPolytopes
 
 P = convexHull transpose matrix "1,0;-1,0;0,1/20;-1,11/20"
 EhrhartQP(P)
-displayQP(oo)
+displayQP(EhrhartQP P, Truncate => 5)
 
 QP1 = EhrhartQPM2(P)
 QP2 = EhrhartQPNormaliz(P)
@@ -659,7 +715,7 @@ hStar P
 ehrhartSeries P
 
 hStar(P, Backend => "M2")
-ehrhartSeries P
+ehrhartSeries(P, Backend => "M2")
 
 f = EhrhartQP(P)
 displayQP(f)
