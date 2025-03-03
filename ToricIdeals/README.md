@@ -1,9 +1,18 @@
-This repository contains:
-- This README,
-- The code for the Macaulay2 package "allMarkovBases",
-- The code from the [paper](https://arxiv.org/abs/2502.19031) associated with the package,
-- The [paper by Charalambous, Katsabekis and Thoma](https://arxiv.org/abs/math/0607249) which contains the key results (Theorems 2.6 and 2.7) which justify why the package works and proof of those results.
+# All Markov Bases for Macaulay2
 
-To load the package in Macaulay2, run
+This repository contains:
+- 'allMarkovBases.m2' - the code for the Macaulay2 package "allMarkovBases"
+- 'paperCode.m2' - the code from the [paper](https://arxiv.org/abs/2502.19031) associated with this package
+
+To load the package in Macaulay2: clone the repository, start an instance of Macaulay2 in this foler, and run:
 
     loadPackage "allMarkovBases";
+
+The package is fully documented. For help see:
+
+    help "allMarkovBases"
+
+or
+
+    viewHelp "allMarkovBases"
+
