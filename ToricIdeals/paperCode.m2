@@ -3,7 +3,7 @@
 -- 1. Introduction --
 ---------------------
 
-needsPackage "allMarkovBases";
+needsPackage "AllMarkovBases";
 
 A = matrix "7,8,9,10";
 countMarkov A
