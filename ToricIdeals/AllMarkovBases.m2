@@ -1,5 +1,5 @@
 newPackage(
-    "allMarkovBases",
+    "AllMarkovBases",
     Version => "0.1",
     Date => "December 16, 2024",
     Headline => "package for computing all minimal Markov bases
@@ -358,7 +358,7 @@ beginDocumentation()
 
 doc ///
   Key
-    allMarkovBases
+    AllMarkovBases
   Headline
     compute all minimal Markov Bases of a toric ideal
   Description
@@ -505,7 +505,7 @@ doc ///
 
   SeeAlso
     markovBases
-    allMarkovBases
+    AllMarkovBases
 ///
 
 
