@@ -54,7 +54,7 @@ toricIndispensableSet A
 
 R = QQ[x, y, z];
 markovBases(A, R)
-
+randomMarkov(A, R)
 toricIndispensableSet(A, R)
 
 gens toricUniversalMarkov(A, R)
