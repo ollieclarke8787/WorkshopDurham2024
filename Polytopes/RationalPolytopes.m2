@@ -20,11 +20,9 @@ export {
     "Ehrhart",
     "EhrhartQP",
     "isPeriod",
-    -- "cleanCoefficients",
     "quasiPolynomial",
     "period",
     "displayQP",
-    "periodQP",
     "coefficientMonomial",
     "ehrhartSeries",
     "ReturnDenominator",
@@ -43,43 +41,48 @@ denominator Polyhedron := P -> (
 
 -* QuasiPolynomial Type *-
 
--- Cleaning function
 
-isPeriod=method()
-isPeriod(Matrix,ZZ) := (M,q) -> (
-    result:=true;
-    if numRows M%q!=0 then result=false;
-    if numRows M%q==0 then (
-        for j from 0 to numRows M//q-1 do(
-            if M^(toList(0 .. q-1))!=M^(toList((j*q .. (j+1)*q-1))) then result=false;
+-- isPeriod(M, q)
+-- M: Matrix
+-- q: ZZ
+-- returns true if for every j:
+-- M^{j*q .. (j+1)*q-1} == M^{0 .. q-1}
+isPeriod = method()
+isPeriod(Matrix, ZZ) := (M, q) -> (
+    if numRows M % q != 0 then false
+		else (
+        result := for j from 0 to numRows M // q - 1 do (
+            if M^{0 .. q-1} != M^{j*q .. (j+1)*q-1} then break false;
             );
-        );
-    result
+				if result === null then true else false
+        )
     )
 
-cleaning = method()
-cleaning(Matrix) := M-> (
-    q:=0;
-    for p from 1 to numRows M-1 do(
-        if isPeriod(M,p) then q=p;
-        );
-    if q!=0 then (
-        M=submatrix'(M,toList(q .. numRows M-1),);
-        );
-    M
-    )
 
+-- collapseMatrix M
+-- M: Matrix
+-- returns the smallest matrix that represents the
+-- same quasi-polynomial as M
+collapseMatrix = method()
+collapseMatrix Matrix := M -> (
+    q := for p from 1 to (numRows M)//2 do (
+        if isPeriod(M, p) then break p;
+        );
+		if q =!= null then (
+        M^{0 .. q-1}
+        ) else M
+    )
 
 -- Definition of the Type QuasiPolynomial
 
 QuasiPolynomial = new Type of HashTable
 
 quasiPolynomial = method()
-quasiPolynomial(Matrix) := M -> (
-    Mclean:=cleaning(M);
+quasiPolynomial Matrix := M -> (
+    MCollapsed:= collapseMatrix M;
     new QuasiPolynomial from {
-        period => numRows(Mclean),
-        coefficients => Mclean,
+        period => numRows MCollapsed,
+        coefficients => MCollapsed,
         cache => new CacheTable,
         }
     )
@@ -91,7 +94,7 @@ net QuasiPolynomial := QP -> (
     )
 
 
-quasiPolynomial(List) := L -> (
+quasiPolynomial List := L -> (
     if not isMember(false, for l in L list instance(l,List)) then (
         D:=max for p in L list length p;
         L1:=for p in L list ((for i in 0..D-length p -1 list 0)|p);
@@ -107,13 +110,12 @@ quasiPolynomial(List) := L -> (
         )
     )
 
--- note that we can borrow === function to determine equality of QP's because we
--- always clean the QP in the constructor
+-- note that we can borrow === function to determine equality of
+-- QuasiPolynomials because we collapse the coefficients matrix
 QuasiPolynomial == QuasiPolynomial := (QP1, QP2) -> QP1 === QP2
 
 
 -- QuasiPolynomial as a function.
-
 QuasiPolynomial ZZ := (QP, v) -> (
     internalQuasiPolynomial(QP,v)
     )
@@ -125,10 +127,9 @@ internalQuasiPolynomial(QuasiPolynomial, ZZ) := (QP,t) -> (
     (r*T)_(0,0)
     )
 
-
 -- Various methods associated to a QuasiPolynomial
 
--- display the QuasiPolynomial in a friendly way
+-- display QuasiPolynomial in a friendly way
 displayQP = method(
     Options => {
         Truncate => null -- null or integer
@@ -137,7 +138,7 @@ displayQP = method(
 displayQP(QuasiPolynomial) := opts -> QP -> (
     R := monoid[getSymbol "t"];
     t := R_0;
-    if opts.Truncate === null or QP.period <= opts.Truncate or opts.Truncate < 3 then (
+    if opts.Truncate === null or QP#period <= opts.Truncate or opts.Truncate < 3 then (
         sum for d in 0 .. (numColumns QP#coefficients)-1 list (
             -- the leading coefficient is a constant so we could use this instead:
             --(if d > 0 then (QP#coefficients)_{d} else (QP#coefficients)_{d}^{0}
@@ -166,15 +167,23 @@ displayQP(QuasiPolynomial) := opts -> QP -> (
     )
 
 
-degree(QuasiPolynomial) := QP -> (
+degree QuasiPolynomial := QP -> (
     numColumns(QP#coefficients)-1
     )
 
-periodQP =method()
-periodQP(QuasiPolynomial) := QP -> (
-    numRows(QP#coefficients)
+period = method()
+period QuasiPolynomial := QP -> (
+    QP#period
     )
 
+coefficients QuasiPolynomial := QP -> (
+		QP#coefficients
+		)
+
+-- coefficientMonomial(QP, i)
+-- QP: QuasiPolynomial
+-- i : ZZ
+-- returns the coefficient of t^i in the QuasiPolynomial
 coefficientMonomial = method()
 coefficientMonomial(QuasiPolynomial,ZZ) := (QP,i) -> (
     if i < degree(QP)+1 then M:=QP#coefficients_{degree(QP)-i};
@@ -182,10 +191,7 @@ coefficientMonomial(QuasiPolynomial,ZZ) := (QP,i) -> (
     M
     )
 
-
-
 -* Ehrhart Polynomial part *-
-
 
 Ehrhart=method(TypicalValue=>RingElement)
 Ehrhart (Polyhedron,ZZ):=(P, i) -> (
@@ -530,11 +536,11 @@ doc ///
 
 doc ///
   Key
-    periodQP
+    period
   Headline
     a function
   Usage
-    p = periodQP(QP)
+    p = period(QP)
   Inputs
     QP : QuasiPolynomial
       A quasipolynomial of which we want to compute the period
@@ -545,9 +551,9 @@ doc ///
     Text
       Computes the period of a quasipolynomial
     Example
-      periodQP(quasiPolynomial(matrix{{1,2,3},{1,4,5}}))
-      periodQP(quasiPolynomial(matrix{{1,1},{1,2},{1,1},{1,2}}))
-      periodQP(quasiPolynomial(matrix{{3,6,7,2},{3,4,4,2},{3,2,5,6}}))
+      period(quasiPolynomial(matrix{{1,2,3},{1,4,5}}))
+      period(quasiPolynomial(matrix{{1,1},{1,2},{1,1},{1,2}}))
+      period(quasiPolynomial(matrix{{3,6,7,2},{3,4,4,2},{3,2,5,6}}))
   SeeAlso
     RationalPolytopes
 ///
@@ -666,8 +672,10 @@ check "RationalPolytopes"
 P=convexHull transpose matrix "0;1/2"
 EQP=EhrhartQP(P)
 
+
+
 P=convexHull transpose matrix "1,0;-1,0;0,1/2;0,-1/2"
-diasplayQP EhrhartQP(P)
+displayQP EhrhartQP(P)
 
 P=convexHull transpose matrix "-1/2; 1/2"
 EhrhartQP(P)
@@ -704,7 +712,7 @@ debug RationalPolytopes
 
 P = convexHull transpose matrix "1,0;-1,0;0,1/20;-1,11/20"
 EhrhartQP(P)
-displayQP(EhrhartQP P, Truncate => 5)
+displayQP(EhrhartQP P, Truncate => 1000)
 
 QP1 = EhrhartQPM2(P)
 QP2 = EhrhartQPNormaliz(P)
