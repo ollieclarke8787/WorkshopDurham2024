@@ -35,11 +35,12 @@ elapsedTime toricUniversalMarkov A'';
 -- 2. How it works --
 ---------------------
 
-needsPackage "allMarkovBases";
+needsPackage "FourTiTwo";
 
 A = matrix "1,2,3";
 M = toricMarkov A
 
+needsPackage "AllMarkovBases";
 fiberGraph A
 
 markovBases A
