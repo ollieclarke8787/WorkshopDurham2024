@@ -94,68 +94,91 @@ fiberGraph Matrix := opts -> A -> (
     )
 
 
---Algorithm 3: decompose fiber into smaller fibers (UNDER DEVELOPMENT)
+--Algorithm 3: decompose fiber into smaller fibers 
 decomposeFiberGraph = method();
 decomposeFiberGraph (Matrix, Matrix) := (A, starterMarkovBasis) -> (
     starterMarkovBasis = entries starterMarkovBasis;
     n := numColumns A;
     fiberStarters := new MutableHashTable;
-    fiberValues := new MutableHashTable;
     for basis in starterMarkovBasis do(
         elPos := for coord in basis list(if coord >= 0 then coord else 0);
         elNeg := elPos - basis;
         fiberVal := flatten entries (A * transpose matrix{elPos});
         if fiberStarters#?fiberVal then (fiberStarters#fiberVal)##(fiberStarters#fiberVal) = {elPos,elNeg} else fiberStarters#fiberVal = new MutableList from {{elPos,elNeg}};
-        fiberValues#basis = fiberVal;
         );
-    print peek fiberStarters;
-    print peek fiberValues;
+    finalR := new MutableHashTable;
+    for val in keys fiberStarters do(
+	buildFiber := flatten toList fiberStarters#val;
+	finalR#val = (v -> {v}) \ (unique buildFiber);
+	fiberStarters#val = set buildFiber;
+	);
+    A.cache#"fiberStarters" = fiberStarters;
     fiberValuesPoset := poset(keys fiberStarters,(x,y) -> x<<y);
     fibersLeft := new MutableList from keys fiberStarters;
     tempPoset := fiberValuesPoset;
-    --while #fibersLeft>0 do(
-    for minimalElement in minimalElements tempPoset do(
-	rvs := drop(principalOrderIdeal(fiberValuesPoset,minimalElement),1);
-	print rvs;
-	--R := recursiveFiber({7},{{2},{5},{11},{13}});
-	--print R;
-	remove(fibersLeft,position(toList fibersLeft,z -> z==minimalElement));
+    while #fibersLeft>0 do(
+	for minimalElement in minimalElements tempPoset do(
+	    remove(fibersLeft,position(toList fibersLeft,z -> z==minimalElement));
+	    rvs := delete(minimalElement,principalOrderIdeal(fiberValuesPoset,minimalElement));
+	    if #rvs == 0 then continue;
+	    R := integrateLists(recursiveFiber(minimalElement,rvs,A),(v -> set toList v) \ finalR#minimalElement);
+	    finalR#minimalElement = (v -> toList v) \ R;
+	    (A.cache#"fiberStarters")#minimalElement = union R;
+	    );
+	tempPoset = subposet(fiberValuesPoset,toList fibersLeft);
 	);
-    tempPoset = subposet(fiberValuesPoset,toList fibersLeft);
-    print peek fibersLeft;
+    print peek finalR;
+    print peek (A.cache#"fiberStarters");
+    A.cache#"FiberGraphComponents" = values finalR;
     );
 
 -- addition of fibers (unexported)
 fiberAdd = method();
-fiberAdd List := L -> (
-    fold(
-	(combinedFibers,fiberToBeAdded) -> (
-	    unique flatten for p in combinedFibers list (
-		for q in fiberToBeAdded list p+q
-		)
-	    ),
-	L)
+fiberAdd (Set,Set) := (C,D) -> (
+    {set flatten for p in keys C list for q in keys D list p+q}
     );
 
--- recursive method (unexported)
+-- recursive method 2 (unexported)
 recursiveFiber = method();
-recursiveFiber (List, List) := (val, rvs) -> (
+recursiveFiber (List, List, Matrix) := (val, rvs, A) -> (
     residVals := for rv in rvs list(
 	resid := val-rv;
-	if all(resid,z -> z>=0) then resid else continue
+	if all(resid,z -> z>=0) then fiberAdd((union recursiveFiber(resid, rvs, A)), (A.cache#"fiberStarters")#rv) else continue
 	);
-    if #residVals > 0 then(
-	apply(residVals,recursiveFiber)
-	)
-    else endFiber(val)
+    if #residVals > 0 and (unique residVals) == {{set{}}} then endFiber(val,A)
+    else if #residVals > 0 then fold(residVals,integrateLists)
+    else if (A.cache#"fiberStarters")#?val then (A.cache#"fiberStarters")#val
+    else endFiber(val, A)
     );
 
--- end fiber method (unexported)
+-- method to handle end of recursion (unexported)
 endFiber = method();
-endFiber List := val -> (
-    3
+endFiber (List, Matrix) := (val, A) -> (
+    output := {set{}};
+    for row in entries toricMarkov matrix{{transpose matrix {val},A}} do(
+	r := drop(row,1);
+	if row#0 == 1 and all(r,z->z<=0) then (output = {set{-r}}; break;);
+	);
+    (A.cache#"fiberStarters")#val=output;
+    output
     );
 
+-- method to glue fibers together (unexported)
+integrateLists = method();
+integrateLists (List,List) := (L1, L2) -> (
+    L1 = new MutableList from L1;
+    L2 = new MutableList from L2;
+    for i from 0 to #L1 - 1 do(
+	for j from 0 to #L2 - 1 do(
+	    if #(L1#i * L2#j)>0 then (
+		u := L1#i + L2#j;
+		L1#i = u;
+		L2#j = u;
+		);
+	    );
+	);
+    unique ((toList L1) | (toList L2))
+    );
 
 
 
@@ -428,7 +451,7 @@ countMarkov Matrix := A -> (
     allFibersConnectedComponents := fiberGraph(A,
         ReturnConnectedComponents => true,
         CheckInput => true,
-        Algorithm => "fast");
+        Algorithm => "decompose");
     product for fiberConnectedComponents in allFibersConnectedComponents list(
         k := #fiberConnectedComponents;
         if k==2 then continue #fiberConnectedComponents#0 * #fiberConnectedComponents#1;
