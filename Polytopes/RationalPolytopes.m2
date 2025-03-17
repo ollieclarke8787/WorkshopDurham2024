@@ -26,7 +26,8 @@ export {
     "coefficientMonomial",
     "ehrhartSeries",
     "ReturnDenominator",
-    "Backend"
+    "Backend",
+		"latticePointsFromHData"
     }
 
 
@@ -374,7 +375,7 @@ ehrhartSeries Polyhedron := opts -> P -> (
 debug Normaliz
 
 -- writes the given data in a normaliz input file
-doWriteNmzData = method()
+-- doWriteNmzData = method()
 -- writes several matrices in a normaliz input file
 doWriteNmzData List := matrices -> (
     checkNmzFile("doWriteNmzData");
@@ -396,6 +397,29 @@ doWriteNmzData List := matrices -> (
         outf << nmzMode << endl);
     outf << close
     )
+
+
+-- lattice points of a rational polytope using Normaliz
+-- returns a matrix whose columns are the lattice points
+latticePointsFromHData = method()
+latticePointsFromHData(Matrix, Matrix) := (I, v) -> (
+		-- polytope is given by Ix <= v
+		M := -I | v;
+		normalizOutput := normaliz(M, "inhom_inequalities");
+		n := numColumns normalizOutput#"gen";
+		transpose normalizOutput#"gen"_{0 .. n-2}
+		)
+
+latticePointsFromHData(Matrix, Matrix, Matrix, Matrix) := (I, v, E, w) -> (
+		-- polytope is given by Ix <= v, Ex = w
+		M   := -I |  v;
+		M'  := -E |  w;
+		M'' :=  E | -w;
+		normalizOutput := normaliz(M || M' || M'', "inhom_inequalities");
+		n := numColumns normalizOutput#"gen";
+		transpose normalizOutput#"gen"_{0 .. n-2}
+		)
+
 
 ---------------------------------------
 -* Documentation section *-
@@ -672,8 +696,6 @@ check "RationalPolytopes"
 P=convexHull transpose matrix "0;1/2"
 EQP=EhrhartQP(P)
 
-
-
 P=convexHull transpose matrix "1,0;-1,0;0,1/2;0,-1/2"
 displayQP EhrhartQP(P)
 
@@ -711,6 +733,7 @@ needsPackage "RationalPolytopes"
 debug RationalPolytopes
 
 P = convexHull transpose matrix "1,0;-1,0;0,1/20;-1,11/20"
+latticePoints P
 EhrhartQP(P)
 displayQP(EhrhartQP P, Truncate => 1000)
 
@@ -737,3 +760,66 @@ displayQP(f)
 f 100
 
 C = normaliz(transpose vertices P, "polytope")
+
+
+-------------------------
+
+restart
+needsPackage "RationalPolytopes"
+
+-- Ax + v >= 0
+-- M = [A | v]
+M = matrix "-8,2,500; 1, -1, 0; 2, 7, 3"
+s = "inhom_inequalities"
+
+debug Normaliz
+elapsedTime runNormaliz(M, s);
+oo#"gen" -- list of lattice points as row vectors of a matrix + 1
+
+
+P = polyhedronFromHData(- matrix "-8, 2; 1, -1; 2, 7", matrix "500; 0; 3")
+elapsedTime (latticePoints P);
+
+
+setNmzFile()
+writeNmzData(M, s)
+-- runNormaliz(M, s)
+
+-- created a temp file with data
+-- manually edited it to say inhom_inequalities + LatticePoints
+
+
+dir := select(".*/", nmzFile);
+runDir := if dir != {} then dir#0 else null;
+elapsedTime runProgram(normalizProgram, getNmzExec(), collectNmzOptions() | baseFilename nmzFile,
+		RunDirectory => runDir, Verbose => debugLevel > 0);
+
+    -- return nothing if .gen is not generated
+    if not nmzGen then ( if nmzFilename == "" then rmNmzFiles(); return );
+
+    if not opts.allComputations then (
+	nmzData := readNmzData "gen";
+	rc := new RationalCone from { "gen" => nmzData, "inv" => getNumInvs() };
+	if nmzFilename == "" then rmNmzFiles();
+	return rc);
+
+    -- read all files written
+    files := { "inv" => getNumInvs() };
+    suffixes := { "gen","egn","esp","tri","typ","ht1","ext","tgn" };
+    for s in suffixes do if fileExists(nmzFile | "." | s) then files = append(files, s => readNmzData s);
+
+    L := readMultipleNmzData "cst";
+    files = append(files, "sup" => L#0);
+    files = append(files, "equ" => L#1);
+    files = append(files, "cgr" => L#2);
+
+    C := new RationalCone from files;
+
+    if nmzFilename == "" then rmNmzFiles();
+    C
+
+-- y <= x, x >= 0, y = 0
+latticePointsFromHData(matrix "-1, 1;1, 0", matrix "0; 10", matrix "0, 1", matrix "0")
+
+-- strange output if the polyhedron is unbounded
+latticePointsFromHData(matrix "-1; 1", matrix "-1; 10")
