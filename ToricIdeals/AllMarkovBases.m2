@@ -14,7 +14,7 @@ newPackage(
         },
     AuxiliaryFiles => false,
     DebuggingMode => false,
-    PackageExports => {"FourTiTwo","Graphs","TensorComplexes","Polyhedra","Posets"}
+    PackageExports => {"FourTiTwo","Graphs","TensorComplexes","Polyhedra","Posets","SubalgebraBases","LLLBases"}
     )
 
 -------------
@@ -33,12 +33,7 @@ export {
     "fiber",
     "countMarkov",
     "toricIndispensableSet",
-    "toricUniversalMarkov",
-    
-    "recursiveFiber",
-    "integrateLists",
-    "endFiber",
-    "fiberAdd"
+    "toricUniversalMarkov"
     }
 
 ----------
@@ -110,8 +105,15 @@ fiberGraph Matrix := opts -> A -> (
 --Algorithm 3: decompose fiber into smaller fibers 
 decomposeFiberGraph = method();
 decomposeFiberGraph (Matrix, Matrix,List) := (A, starterMarkovBasis,fiber) -> (
-    starterMarkovBasis = entries starterMarkovBasis;
     n := numColumns A;
+    R := QQ(monoid[Variables => 2*n]);
+    A.cache#"ring" = R;
+    G := gens R;
+    I := ideal(for i from 0 to n-1 list(G#i * G#(n+i) -1));
+    S := subring (gens R)_{0..n-1};
+    A.cache#"subring" = S;
+    A.cache#"binomial" = toBinomial(starterMarkovBasis,R)+I;
+    starterMarkovBasis = entries starterMarkovBasis;
     fiberStarters := new MutableHashTable;
     for basis in starterMarkovBasis do(
         elPos := for coord in basis list(if coord >= 0 then coord else 0);
@@ -134,9 +136,10 @@ decomposeFiberGraph (Matrix, Matrix,List) := (A, starterMarkovBasis,fiber) -> (
 	);
     fibersLeft := new MutableList from fiberValuesPoset#GroundSet;
     tempPoset := fiberValuesPoset;
-    -- A.cache#"MBTiming" = 0; --TIMING
-    -- A.cache#"foldingTiming" = 0; --TIMING
-    -- A.cache#"additionTiming" = 0; --TIMING
+    A.cache#"MBTiming" = 0; --TIMING
+    A.cache#"foldingTiming" = 0; --TIMING
+    A.cache#"additionTiming" = 0; --TIMING
+    A.cache#"recursion" = 0; --TIMING
     local R;
     local rvs;
     while #fibersLeft>0 do(
@@ -155,12 +158,14 @@ decomposeFiberGraph (Matrix, Matrix,List) := (A, starterMarkovBasis,fiber) -> (
 	tempPoset = subposet(fiberValuesPoset,toList fibersLeft);
 	);
     --print peek (A.cache#"fiberStarters");
-    -- print "Time spent computing Markov bases"; --TIMING
-    -- print A.cache#"MBTiming"; --TIMING
-    -- print "Time spent folding lists"; --TIMING
-    -- print A.cache#"foldingTiming"; --TIMING
-    -- print "Time spent adding lists"; --TIMING
-    -- print A.cache#"foldingTiming"; --TIMING
+    print "Time spent computing Markov bases"; --TIMING
+    print A.cache#"MBTiming"; --TIMING
+    print "Time spent folding lists"; --TIMING
+    print A.cache#"foldingTiming"; --TIMING
+    print "Time spent adding lists"; --TIMING
+    print A.cache#"foldingTiming"; --TIMING
+    print "Time spent recursing"; --TIMING
+    print A.cache#"recursion"; --TIMING
     remove(A.cache,"current");
     if fiber=={} then A.cache#"FiberGraphComponents" = values finalR else finalR#fiber
     );
@@ -170,43 +175,64 @@ decomposeFiberGraph (Matrix, Matrix,List) := (A, starterMarkovBasis,fiber) -> (
 -- addition of fibers (unexported)
 fiberAdd = method();
 fiberAdd (Set,Set,Matrix) := (C,D,A) -> (
-    {set flatten for p in keys C list for q in keys D list p+q}
-    -- aDD := elapsedTiming {set flatten for p in keys C list for q in keys D list p+q}; --TIMING
-    -- A.cache#"additionTiming" = A.cache#"additionTiming" + aDD#0; --TIMING
-    -- aDD#1 --TIMING
+    -- {set flatten for p in keys C list for q in keys D list p+q}
+    aDD := timing {set flatten for p in keys C list for q in keys D list p+q}; --TIMING
+    A.cache#"additionTiming" = A.cache#"additionTiming" + aDD#0; --TIMING
+    aDD#1 --TIMING
     );
 
 -- recursive method 2 (unexported)
 recursiveFiber = method();
 recursiveFiber (List, List, Matrix) := (val, rvs, A) -> (
-    rvL := #rvs - 1;
     local output;
-    residVals := for i from 0 to rvL list(
+    residVals := for i from 0 to #rvs - 1 list(
 	resid := val-rvs#i;
 	if not all(resid,z -> z>=0) then continue;
 	output := fiberAdd((union recursiveFiber(resid, rvs_{0..i}, A)), ((A.cache#"fiberStarters")#(rvs#i))#0,A);
 	if output == {set{}} then continue else output
 	);
-    if #residVals > 0 then fold(residVals,integrateLists)
-    -- if #residVals > 0 then (F := elapsedTiming fold(residVals,integrateLists); A.cache#"foldingTiming" = A.cache#"foldingTiming" + F#0; F#1) --TIMING
+    -- if #residVals > 0 then fold(residVals,integrateLists)
+    if #residVals > 0 then (F := timing fold(residVals,integrateLists); A.cache#"foldingTiming" = A.cache#"foldingTiming" + F#0; F#1) --TIMING
     else if (A.cache#"fiberStarters")#?val and (A.cache#"current" != val) then (A.cache#"fiberStarters")#val
-    else endFiber(val, A)
+    else endFiber2(val, A)
     );
 
 -- method to handle end of recursion (unexported)
 endFiber = method();
 endFiber (List, Matrix) := (val, A) -> (
     output := {set{}};
-    -- T := elapsedTiming toricMarkov matrix{{transpose matrix {val},A}}; --TIMING
-    -- A.cache#"MBTiming" = A.cache#"MBTiming" + T#0; --TIMING
-    -- for row in entries T#1 do( --TIMING
-    for row in entries toricMarkov matrix{{transpose matrix {val},A}} do(
+    T := timing toricMarkov matrix{{transpose matrix {val},A}}; --TIMING
+    A.cache#"MBTiming" = A.cache#"MBTiming" + T#0; --TIMING
+    for row in entries T#1 do( --TIMING
+    -- for row in entries toricMarkov matrix{{transpose matrix {val},A}} do(
 	r := drop(row,1);
 	if row#0 == 1 and all(r,z->z<=0) then (output = {set{-r}}; break;);
 	);
     (A.cache#"fiberStarters")#val=output;
     output
     );
+
+-- different algorithm to handle end of recursion (unexported) (a lot slower)
+endFiber2 = method();
+endFiber2 (List, Matrix) := (val, A) -> (
+    n := numColumns A;
+    T := timing (entries transpose (LLL(A | transpose matrix{val},ChangeMatrix => true))#1)#(n-rank A);
+    A.cache#"MBTiming" = A.cache#"MBTiming" + T#0; --TIMING
+    T = T#1;
+    -- T := last entries transpose kernelLLL (A | transpose matrix{val});
+    if abs(last T) != 1 then return {set{}};
+    T = -(last T) * drop(T,-1);
+    G := gens A.cache#"ring";
+    e := 1;
+    for i from 0 to #T - 1 do(
+	if T#i < 0 then e=e*(G#(n+i))^(-T#i)
+	else e=e*(G#i)^(T#i)
+	);
+    e = e % A.cache#"binomial";
+    if e % A.cache#"subring" == 0 then {set{take((exponents e)#0,{0,n-1})}} else {set{}}
+    );
+
+
 
 -- method to glue fibers together (unexported)
 integrateLists = method();
