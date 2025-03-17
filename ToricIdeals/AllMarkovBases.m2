@@ -61,6 +61,7 @@ fiberGraph Matrix := opts -> A -> (
         if not A.cache#?"FiberGraphComponents" then (
             starterMarkovBasis = toricMarkov A;
             if opts.CheckInput then ( -- check whether \NN A is a pointed cone
+		if starterMarkovBasis == 0 then error("There are no Markov bases");
                 for basisElement in entries starterMarkovBasis do (
                     if (all(basisElement, z -> z >= 0) or all(basisElement, z -> z <= 0)) then error("semigroup not pointed");
                     );
@@ -106,13 +107,46 @@ fiberGraph Matrix := opts -> A -> (
 decomposeFiberGraph = method();
 decomposeFiberGraph (Matrix, Matrix,List) := (A, starterMarkovBasis,fiber) -> (
     n := numColumns A;
-    R := QQ(monoid[Variables => 2*n]);
-    A.cache#"ring" = R;
-    G := gens R;
-    I := ideal(for i from 0 to n-1 list(G#i * G#(n+i) -1));
-    S := subring (gens R)_{0..n-1};
-    A.cache#"subring" = S;
-    A.cache#"binomial" = toBinomial(starterMarkovBasis,R)+I;
+    -- -- endFiber2
+    -- R := QQ(monoid[Variables => 2*n]);	
+    -- A.cache#"ring" = R;
+    -- G := gens R;
+    -- I := ideal(for i from 0 to n-1 list(G#i * G#(n+i) -1));
+    -- S := subring (gens R)_{0..n-1};
+    -- A.cache#"subring" = S;
+    -- A.cache#"binomial" = toBinomial(starterMarkovBasis,R)+I;
+    -- --
+    -- -- endFiber3
+    -- d := numRows A;
+    -- R := QQ(monoid[Variables => n+2*d]);
+    -- A.cache#"ring" = R;
+    -- G := gens R;
+    -- A.cache#"gens" = G;
+    -- Ad := entries transpose A;
+    -- I1 := ideal(for i from 0 to d-1 list(G#(n+i) * G#(n+d+i) -1));
+    -- I2 :=  ideal(for j from 0 to n-1 list(G#j - product(for i from 0 to d-1 list(if (Ad#j)#i<0 then (G#(n+d+i))^(-(Ad#j)#i) else (G#(n+i))^((Ad#j)#i)))));
+    -- A.cache#"binomial" = I1+I2;
+    -- time gb A.cache#"binomial";
+    -- print peek (A.cache#"binomial").cache;
+    -- S := subring (gens R)_{0..n-1};
+    -- A.cache#"subring" = S;
+    -- --
+    -- endFiber4
+    -- d := numRows A;
+    -- R := QQ(monoid[Variables => 2*n]);	
+    -- A.cache#"ring" = R;
+    -- G := gens R;
+    -- I := ideal(for i from 0 to n-1 list(G#i * G#(n+i) -1));
+    -- S := subring (gens R)_{0..n-1};
+    -- A.cache#"subring" = S;
+    -- A.cache#"binomial" = I+toBinomial(starterMarkovBasis,R);
+    -- gb A.cache#"binomial";
+    -- local output;
+    -- if d != rank A then error("Matrix is not full rank");
+    -- H := hermite(A,ChangeMatrix => true);
+    -- A.cache#"inverseH" = inverse(matrix(QQ,entries (H#0)_{(n-d)..(n-1)}));
+    -- A.cache#"lattice" = (H#1)_{(n-d)..(n-1)};
+    -- --
     starterMarkovBasis = entries starterMarkovBasis;
     fiberStarters := new MutableHashTable;
     for basis in starterMarkovBasis do(
@@ -139,7 +173,7 @@ decomposeFiberGraph (Matrix, Matrix,List) := (A, starterMarkovBasis,fiber) -> (
     A.cache#"MBTiming" = 0; --TIMING
     A.cache#"foldingTiming" = 0; --TIMING
     A.cache#"additionTiming" = 0; --TIMING
-    A.cache#"recursion" = 0; --TIMING
+    A.cache#"union" = 0; --TIMING
     local R;
     local rvs;
     while #fibersLeft>0 do(
@@ -164,8 +198,8 @@ decomposeFiberGraph (Matrix, Matrix,List) := (A, starterMarkovBasis,fiber) -> (
     print A.cache#"foldingTiming"; --TIMING
     print "Time spent adding lists"; --TIMING
     print A.cache#"foldingTiming"; --TIMING
-    print "Time spent recursing"; --TIMING
-    print A.cache#"recursion"; --TIMING
+    print "Time spent unioning"; --TIMING
+    print A.cache#"union"; --TIMING
     remove(A.cache,"current");
     if fiber=={} then A.cache#"FiberGraphComponents" = values finalR else finalR#fiber
     );
@@ -188,23 +222,25 @@ recursiveFiber (List, List, Matrix) := (val, rvs, A) -> (
     residVals := for i from 0 to #rvs - 1 list(
 	resid := val-rvs#i;
 	if not all(resid,z -> z>=0) then continue;
-	output := fiberAdd((union recursiveFiber(resid, rvs_{0..i}, A)), ((A.cache#"fiberStarters")#(rvs#i))#0,A);
+	UU := recursiveFiber(resid, rvs_{0..i}, A);
+	U := timing union UU;
+	A.cache#"union" = A.cache#"union" + U#0;
+	output := fiberAdd(U#1, ((A.cache#"fiberStarters")#(rvs#i))#0,A);
+	-- output := fiberAdd(union recursiveFiber(resid, rvs_{0..i}, A), ((A.cache#"fiberStarters")#(rvs#i))#0,A);
 	if output == {set{}} then continue else output
 	);
     -- if #residVals > 0 then fold(residVals,integrateLists)
     if #residVals > 0 then (F := timing fold(residVals,integrateLists); A.cache#"foldingTiming" = A.cache#"foldingTiming" + F#0; F#1) --TIMING
     else if (A.cache#"fiberStarters")#?val and (A.cache#"current" != val) then (A.cache#"fiberStarters")#val
-    else endFiber2(val, A)
+    else (E := timing endFiber(val, A); A.cache#"MBTiming" = A.cache#"MBTiming" + E#0;E#1)
+    -- else endFiber(val,A)
     );
 
 -- method to handle end of recursion (unexported)
 endFiber = method();
 endFiber (List, Matrix) := (val, A) -> (
     output := {set{}};
-    T := timing toricMarkov matrix{{transpose matrix {val},A}}; --TIMING
-    A.cache#"MBTiming" = A.cache#"MBTiming" + T#0; --TIMING
-    for row in entries T#1 do( --TIMING
-    -- for row in entries toricMarkov matrix{{transpose matrix {val},A}} do(
+    for row in entries toricMarkov matrix{{transpose matrix {val},A}} do(
 	r := drop(row,1);
 	if row#0 == 1 and all(r,z->z<=0) then (output = {set{-r}}; break;);
 	);
@@ -216,10 +252,8 @@ endFiber (List, Matrix) := (val, A) -> (
 endFiber2 = method();
 endFiber2 (List, Matrix) := (val, A) -> (
     n := numColumns A;
-    T := timing (entries transpose (LLL(A | transpose matrix{val},ChangeMatrix => true))#1)#(n-rank A);
-    A.cache#"MBTiming" = A.cache#"MBTiming" + T#0; --TIMING
-    T = T#1;
-    -- T := last entries transpose kernelLLL (A | transpose matrix{val});
+    --T := (entries transpose LLL(A | transpose matrix{val},ChangeMatrix => true))#(n-rank A);
+    T := last entries transpose kernelLLL (A | transpose matrix{val});
     if abs(last T) != 1 then return {set{}};
     T = -(last T) * drop(T,-1);
     G := gens A.cache#"ring";
@@ -230,6 +264,30 @@ endFiber2 (List, Matrix) := (val, A) -> (
 	);
     e = e % A.cache#"binomial";
     if e % A.cache#"subring" == 0 then {set{take((exponents e)#0,{0,n-1})}} else {set{}}
+    );
+
+-- different different algorithm to handle end of recursion (unexported)
+endFiber3 = method();
+endFiber3 (List, Matrix) := (val, A) -> (
+    n := numColumns A;
+    d := numRows A;
+    e := (exponents(product(for i from 0 to d-1 list(((A.cache#"gens")#(n+i))^(val#i))) % A.cache#"binomial"))#0;
+    if (take(e,{n,n+d-1}) == toList(d:0)) then {set{take(e,{0,n-1})}} else {set{}}
+    );
+
+-- different algorithm to handle end of recursion (unexported) (a lot slower)
+endFiber4 = method();
+endFiber4 (List, Matrix) := (val, A) -> (
+    n := numColumns A;
+    --print A.cache#"lattice";
+    --print A.cache#"inverseH";
+    --print (transpose matrix{val});
+    H := (entries transpose (A.cache#"lattice" * A.cache#"inverseH" * (transpose matrix{val})))#0;
+    if not all(H,z -> denominator(z) == 1) then return {set{}};
+    T := apply(H,numerator);
+    G := gens A.cache#"ring";
+    e := (exponents (product(for i from 0 to #T-1 list(if T#i<0 then (G#(n+i))^(-T#i) else (G#i)^(T#i))) % A.cache#"binomial"))#0;
+    if (take(e,{n,2*n-1}) == toList(n:0)) then {set{take(e,{0,n-1})}} else {set{}}
     );
 
 
@@ -274,7 +332,7 @@ latticeFiberGraph (Matrix, Matrix) := (A, starterMarkovBasis) -> (
         );
     AQQ := matrix(QQ,entries A);
     A.cache#"FiberGraphComponents" = for val in keys fiberStarters list(
-	V := transpose matrix(QQ,{val});
+	V := transpose matrix(QQ,{val}); -- TRY USING polyhedronFromHData
 	lPs := (v -> (entries transpose v)#0) \ latticePoints convexHull transpose matrix for subset in subsets(toList(0..n-1),d) list(
 	    S := submatrix(AQQ,subset);
 	    if det S == 0 then continue;
@@ -1148,6 +1206,31 @@ E4=transpose matrix {
     {0,7,0,0,0,0,0,0,0,0,0,1,0},
     {0,0,0,0,0,0,0,0,0,0,0,0,1}};
 
+A=40;
+E9=transpose matrix {{0,0,0,0,0,0,0,0,0,0,1,0,0},
+    {1,0,-3,-5,-7,0,0,0,0,0,0,0,0},
+    {0,0,1,0,0,0,0,0,0,0,0,0,0},
+    {0,0,0,1,0,0,0,0,0,0,0,0,0},
+    {0,0,0,0,1,0,0,0,0,0,0,0,0},
+    {0,4,0,0,0,1,0,0,0,0,0,0,0},
+    {0,0,0,0,0,1,0,0,0,0,0,0,0},
+    {0,5,0,0,0,0,4,3,0,0,0,0,0},
+    {0,0,0,0,0,0,7,0,0,0,0,0,0},
+    {0,10,0,0,0,0,0,7,0,0,0,0,0},
+    {0,0,0,0,0,0,0,0,-1,A,0,0,0},
+    {0,6,0,0,0,0,0,0,A-1,0,0,0,0},
+    {0,0,0,0,0,0,0,0,0,A-1,0,0,0},
+    {0,0,0,0,0,0,0,0,0,A-1,0,0,0},
+    {0,0,0,0,0,0,0,0,0,A-1,0,0,0},
+    {0,0,0,0,0,0,0,0,0,A-1,0,0,0},
+    {0,0,0,0,0,0,0,0,0,A-1,0,0,0},
+    {0,0,0,0,0,0,0,0,0,0,-3,2,2},
+    {0,7,0,0,0,0,0,0,0,0,1,0,0},
+    {0,7,0,0,0,0,0,0,0,0,0,1,0},
+    {0,0,0,0,0,0,0,0,0,0,0,0,1}};
+
+
+A=2;
 E8=transpose matrix {{1,0,-3,-5,-7,0,0,0,0,0,0,0,0},
     {0,0,1,0,0,0,0,0,0,0,0,0,0},
     {0,0,0,1,0,0,0,0,0,0,0,0,0},
@@ -1168,6 +1251,8 @@ E8=transpose matrix {{1,0,-3,-5,-7,0,0,0,0,0,0,0,0},
     {0,7,0,0,0,0,0,0,0,0,1,0,0},
     {0,7,0,0,0,0,0,0,0,0,0,1,0},
     {0,0,0,0,0,0,0,0,0,0,0,0,1}};
+
+
 
 
 
@@ -1194,3 +1279,11 @@ cF = (m) -> binomial(m+b, b);
 
 (b+1)^3 * (cF(0))^8 * (cF(A))^8 * (cF(2*A))^4 * (cF(3*A))^4 * (cF(4*A))^2 * (cF(5*A))^2 * (cF(7*A))
 10 + 8 * cF(0) + 8 * cF(2024) + 4 * cF(4048) + 4 * cF(6072) + 2 * cF(8096) + 2 * cF(10120) + cF(14168)
+
+
+
+
+
+
+
+fiberGraph' = profile fiberGraph
