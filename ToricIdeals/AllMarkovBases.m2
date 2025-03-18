@@ -14,7 +14,7 @@ newPackage(
         },
     AuxiliaryFiles => false,
     DebuggingMode => false,
-    PackageExports => {"FourTiTwo","Graphs","TensorComplexes","Polyhedra","Posets","SubalgebraBases","LLLBases"}
+    PackageExports => {"FourTiTwo","Graphs","TensorComplexes","Polyhedra","Posets","SubalgebraBases","LLLBases","Normaliz"}
     )
 
 -------------
@@ -318,54 +318,59 @@ integrateLists (List,List) := (L1, L2) -> (
 --Algorithm 2: lattice points (note: A must have full rank
 latticeFiberGraph = method();
 latticeFiberGraph (Matrix, Matrix) := (A, starterMarkovBasis) -> (
-    starterMarkovBasis = entries starterMarkovBasis;
+    starterMB := transpose starterMarkovBasis;
     n := numColumns A;
     d := numRows A;
+    k := numColumns starterMB;
     fiberStarters := new MutableHashTable;
     fiberValues := new MutableHashTable;
-    for basis in starterMarkovBasis do(
-        elPos := for coord in basis list(if coord >= 0 then coord else 0);
-        elNeg := elPos - basis;
-        fiberVal := flatten entries (A * transpose matrix{elPos});
-        if fiberStarters#?fiberVal then (fiberStarters#fiberVal)##(fiberStarters#fiberVal) = {elPos,elNeg} else fiberStarters#fiberVal = new MutableList from {{elPos,elNeg}};
-        fiberValues#basis = fiberVal;
+    for i from 0 to k - 1 do(
+	basisElement := starterMB_{i};
+        elPos := transpose matrix{for j from 0 to n-1 list(if basisElement_(j,0) >= 0 then basisElement_(j,0) else 0)};
+	elNeg := elPos - basisElement;
+        fiberVal := flatten entries (A * elPos);
+	if fiberStarters#?fiberVal then (fiberStarters#fiberVal)##(fiberStarters#fiberVal) = {elPos,elNeg} else fiberStarters#fiberVal = new MutableList from {{elPos,elNeg}};
+        fiberValues#basisElement = fiberVal;
         );
-    AQQ := matrix(QQ,entries A);
     A.cache#"FiberGraphComponents" = for val in keys fiberStarters list(
-	V := transpose matrix(QQ,{val}); -- TRY USING polyhedronFromHData
-	lPs := (v -> (entries transpose v)#0) \ latticePoints convexHull transpose matrix for subset in subsets(toList(0..n-1),d) list(
-	    S := submatrix(AQQ,subset);
-	    if det S == 0 then continue;
-	    Sinv := inverse(S) * V;
-	    tempL := new MutableList from n:0;
-	    for i from 0 to d-1 do tempL#(subset#i) = Sinv_(i,0);
-	    tempL = toList tempL;
-	    if all(tempL, z -> z >= 0) then tempL else continue
-	    );
-	buildFiber := unique flatten toList fiberStarters#val;
+	starter := fiberStarters#val#0#0;
+	buildFiber := (v -> flatten entries v) \ unique flatten toList fiberStarters#val;
+	validIndexes := for i from 0 to k-1 list if fiberValues#(starterMB_{i}) << val then i else continue;
+	snippedMB := submatrix(starterMB,validIndexes);
 	finalR := (v -> new MutableList from {v}) \ buildFiber;	
+        lPs := latticePointsFromMoves(snippedMB,starter);
 	lPs = new MutableList from lPs - set buildFiber;
-	local reset;
-	while #lPs>0 do(
-	    for point in lPs do(
-		reset=false;
-		for i from 0 to #buildFiber-1 do(
-		    if reset then break;
-		    for el in finalR#i do(
-		        if reset then break;
-			if (not all(point,el,(y,z) -> y==0 or z==0)) and point != el then (
-			    (finalR#i)##(finalR#i) = point;
-			    remove(lPs,position(toList(lPs),z -> z == point));
-			    reset=true;
-			    );
-			);
-		    );
-		);
-	    );
+ 	local reset;
+ 	while #lPs>0 do(
+ 	    for point in lPs do(
+ 		reset=false;
+ 		for i from 0 to #buildFiber-1 do(
+ 		    if reset then break;
+ 		    for el in finalR#i do(
+ 		        if reset then break;
+ 			if (not all(point,el,(y,z) -> y==0 or z==0)) and point != el then (
+ 			    (finalR#i)##(finalR#i) = point;
+ 			    remove(lPs,position(toList(lPs),z -> z == point));
+ 			    reset=true;
+ 			    );
+ 			);
+ 		    );
+ 		);
+ 	    );
 	(v -> toList v) \ finalR
 	);
+    
     );
 
+
+-- uses Normaliz to compute lattice points (unexported)
+latticePointsFromMoves = method()
+latticePointsFromMoves(Matrix, Matrix) := (I, v) -> (
+    M := I | v;
+    normalizOutput := normaliz(M, "inhom_inequalities");
+    normalizOut := transpose normalizOutput#"gen"_{0..(numColumns normalizOutput#"gen")-2};   
+    for i from 0 to numColumns normalizOut - 1 list flatten entries (I*(normalizOut_{i})+v)
+		)
 
 
 
@@ -387,7 +392,6 @@ fastFiberGraphInternal(Matrix, Matrix) := (A, starterMarkovBasis) -> (
         if fiberStarters#?fiberVal then (fiberStarters#fiberVal)##(fiberStarters#fiberVal) = {elPos,elNeg} else fiberStarters#fiberVal = new MutableList from {{elPos,elNeg}};
         fiberValues#basis = fiberVal;
         );
-
     A.cache#"FiberGraphComponents" = for val in keys fiberStarters list(
         validMoves := for move in starterMarkovBasis list if (fiberValues#move << val) and (fiberValues#move != val) then move else continue;
         validMoves = new MutableHashTable from ((v -> {v,true}) \ validMoves);
@@ -575,12 +579,16 @@ randomMarkov(Matrix, Ring) := opts -> (A, R) -> (
     );
 
 
-countMarkov = method()
-countMarkov Matrix := A -> (
+countMarkov = method(
+    Options => {
+	Algorithm => "decompose"
+	}
+    )
+countMarkov Matrix := opts -> A -> (
     allFibersConnectedComponents := fiberGraph(A,
         ReturnConnectedComponents => true,
         CheckInput => true,
-        Algorithm => "decompose");
+        Algorithm => opts.Algorithm);
     product for fiberConnectedComponents in allFibersConnectedComponents list(
         k := #fiberConnectedComponents;
         if k==2 then continue #fiberConnectedComponents#0 * #fiberConnectedComponents#1;
