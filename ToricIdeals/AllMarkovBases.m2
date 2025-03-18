@@ -33,6 +33,7 @@ export {
     "fiber",
     "countMarkov",
     "toricIndispensableSet",
+    "ReturnFiberValues",
     "toricUniversalMarkov"
     }
 
@@ -106,50 +107,9 @@ fiberGraph Matrix := opts -> A -> (
 --Algorithm 3: decompose fiber into smaller fibers 
 decomposeFiberGraph = method();
 decomposeFiberGraph (Matrix, Matrix,List) := (A, starterMarkovBasis,fiber) -> (
-    n := numColumns A;
-    -- -- endFiber2
-    -- R := QQ(monoid[Variables => 2*n]);	
-    -- A.cache#"ring" = R;
-    -- G := gens R;
-    -- I := ideal(for i from 0 to n-1 list(G#i * G#(n+i) -1));
-    -- S := subring (gens R)_{0..n-1};
-    -- A.cache#"subring" = S;
-    -- A.cache#"binomial" = toBinomial(starterMarkovBasis,R)+I;
-    -- --
-    -- -- endFiber3
-    -- d := numRows A;
-    -- R := QQ(monoid[Variables => n+2*d]);
-    -- A.cache#"ring" = R;
-    -- G := gens R;
-    -- A.cache#"gens" = G;
-    -- Ad := entries transpose A;
-    -- I1 := ideal(for i from 0 to d-1 list(G#(n+i) * G#(n+d+i) -1));
-    -- I2 :=  ideal(for j from 0 to n-1 list(G#j - product(for i from 0 to d-1 list(if (Ad#j)#i<0 then (G#(n+d+i))^(-(Ad#j)#i) else (G#(n+i))^((Ad#j)#i)))));
-    -- A.cache#"binomial" = I1+I2;
-    -- time gb A.cache#"binomial";
-    -- print peek (A.cache#"binomial").cache;
-    -- S := subring (gens R)_{0..n-1};
-    -- A.cache#"subring" = S;
-    -- --
-    -- endFiber4
-    -- d := numRows A;
-    -- R := QQ(monoid[Variables => 2*n]);	
-    -- A.cache#"ring" = R;
-    -- G := gens R;
-    -- I := ideal(for i from 0 to n-1 list(G#i * G#(n+i) -1));
-    -- S := subring (gens R)_{0..n-1};
-    -- A.cache#"subring" = S;
-    -- A.cache#"binomial" = I+toBinomial(starterMarkovBasis,R);
-    -- gb A.cache#"binomial";
-    -- local output;
-    -- if d != rank A then error("Matrix is not full rank");
-    -- H := hermite(A,ChangeMatrix => true);
-    -- A.cache#"inverseH" = inverse(matrix(QQ,entries (H#0)_{(n-d)..(n-1)}));
-    -- A.cache#"lattice" = (H#1)_{(n-d)..(n-1)};
-    -- --
-    starterMarkovBasis = entries starterMarkovBasis;
+    starterMB := entries starterMarkovBasis;
     fiberStarters := new MutableHashTable;
-    for basis in starterMarkovBasis do(
+    for basis in starterMB do(
         elPos := for coord in basis list(if coord >= 0 then coord else 0);
         elNeg := elPos - basis;
         fiberVal := flatten entries (A * transpose matrix{elPos});
@@ -170,15 +130,13 @@ decomposeFiberGraph (Matrix, Matrix,List) := (A, starterMarkovBasis,fiber) -> (
 	);
     fibersLeft := new MutableList from fiberValuesPoset#GroundSet;
     tempPoset := fiberValuesPoset;
-    A.cache#"MBTiming" = 0; --TIMING
-    A.cache#"foldingTiming" = 0; --TIMING
-    A.cache#"additionTiming" = 0; --TIMING
-    A.cache#"union" = 0; --TIMING
+    indispensableFibers := toricIndispensableSet(A,starterMarkovBasis,ReturnFiberValues => true);
     local R;
     local rvs;
     while #fibersLeft>0 do(
 	for minimalElement in minimalElements tempPoset do(
 	    remove(fibersLeft,position(toList fibersLeft,z -> z==minimalElement));
+	    if isMember(minimalElement,indispensableFibers) then continue;
 	    A.cache#"current" = minimalElement;
 	    rvs = drop(sort principalOrderIdeal(fiberValuesPoset,minimalElement),-1);
 	    if minimalElement != fiber and #rvs == 0 then continue;
@@ -191,16 +149,6 @@ decomposeFiberGraph (Matrix, Matrix,List) := (A, starterMarkovBasis,fiber) -> (
 	    );
 	tempPoset = subposet(fiberValuesPoset,toList fibersLeft);
 	);
-    --print peek (A.cache#"fiberStarters");
-    print "Time spent computing Markov bases"; --TIMING
-    print A.cache#"MBTiming"; --TIMING
-    print "Time spent folding lists"; --TIMING
-    print A.cache#"foldingTiming"; --TIMING
-    print "Time spent adding lists"; --TIMING
-    print A.cache#"foldingTiming"; --TIMING
-    print "Time spent unioning"; --TIMING
-    print A.cache#"union"; --TIMING
-    remove(A.cache,"current");
     if fiber=={} then A.cache#"FiberGraphComponents" = values finalR else finalR#fiber
     );
 
@@ -208,11 +156,8 @@ decomposeFiberGraph (Matrix, Matrix,List) := (A, starterMarkovBasis,fiber) -> (
 
 -- addition of fibers (unexported)
 fiberAdd = method();
-fiberAdd (Set,Set,Matrix) := (C,D,A) -> (
-    -- {set flatten for p in keys C list for q in keys D list p+q}
-    aDD := timing {set flatten for p in keys C list for q in keys D list p+q}; --TIMING
-    A.cache#"additionTiming" = A.cache#"additionTiming" + aDD#0; --TIMING
-    aDD#1 --TIMING
+fiberAdd (Set,Set) := (C,D) -> (
+    {set flatten for p in keys C list for q in keys D list p+q}
     );
 
 -- recursive method 2 (unexported)
@@ -222,18 +167,12 @@ recursiveFiber (List, List, Matrix) := (val, rvs, A) -> (
     residVals := for i from 0 to #rvs - 1 list(
 	resid := val-rvs#i;
 	if not all(resid,z -> z>=0) then continue;
-	UU := recursiveFiber(resid, rvs_{0..i}, A);
-	U := timing union UU;
-	A.cache#"union" = A.cache#"union" + U#0;
-	output := fiberAdd(U#1, ((A.cache#"fiberStarters")#(rvs#i))#0,A);
-	-- output := fiberAdd(union recursiveFiber(resid, rvs_{0..i}, A), ((A.cache#"fiberStarters")#(rvs#i))#0,A);
+	output := fiberAdd(union recursiveFiber(resid, rvs_{0..i}, A), ((A.cache#"fiberStarters")#(rvs#i))#0);
 	if output == {set{}} then continue else output
 	);
-    -- if #residVals > 0 then fold(residVals,integrateLists)
-    if #residVals > 0 then (F := timing fold(residVals,integrateLists); A.cache#"foldingTiming" = A.cache#"foldingTiming" + F#0; F#1) --TIMING
+    if #residVals > 0 then fold(residVals,integrateLists)
     else if (A.cache#"fiberStarters")#?val and (A.cache#"current" != val) then (A.cache#"fiberStarters")#val
-    else (E := timing endFiber(val, A); A.cache#"MBTiming" = A.cache#"MBTiming" + E#0;E#1)
-    -- else endFiber(val,A)
+    else endFiber(val,A)
     );
 
 -- method to handle end of recursion (unexported)
@@ -247,49 +186,6 @@ endFiber (List, Matrix) := (val, A) -> (
     (A.cache#"fiberStarters")#val=output;
     output
     );
-
--- different algorithm to handle end of recursion (unexported) (a lot slower)
-endFiber2 = method();
-endFiber2 (List, Matrix) := (val, A) -> (
-    n := numColumns A;
-    --T := (entries transpose LLL(A | transpose matrix{val},ChangeMatrix => true))#(n-rank A);
-    T := last entries transpose kernelLLL (A | transpose matrix{val});
-    if abs(last T) != 1 then return {set{}};
-    T = -(last T) * drop(T,-1);
-    G := gens A.cache#"ring";
-    e := 1;
-    for i from 0 to #T - 1 do(
-	if T#i < 0 then e=e*(G#(n+i))^(-T#i)
-	else e=e*(G#i)^(T#i)
-	);
-    e = e % A.cache#"binomial";
-    if e % A.cache#"subring" == 0 then {set{take((exponents e)#0,{0,n-1})}} else {set{}}
-    );
-
--- different different algorithm to handle end of recursion (unexported)
-endFiber3 = method();
-endFiber3 (List, Matrix) := (val, A) -> (
-    n := numColumns A;
-    d := numRows A;
-    e := (exponents(product(for i from 0 to d-1 list(((A.cache#"gens")#(n+i))^(val#i))) % A.cache#"binomial"))#0;
-    if (take(e,{n,n+d-1}) == toList(d:0)) then {set{take(e,{0,n-1})}} else {set{}}
-    );
-
--- different algorithm to handle end of recursion (unexported) (a lot slower)
-endFiber4 = method();
-endFiber4 (List, Matrix) := (val, A) -> (
-    n := numColumns A;
-    --print A.cache#"lattice";
-    --print A.cache#"inverseH";
-    --print (transpose matrix{val});
-    H := (entries transpose (A.cache#"lattice" * A.cache#"inverseH" * (transpose matrix{val})))#0;
-    if not all(H,z -> denominator(z) == 1) then return {set{}};
-    T := apply(H,numerator);
-    G := gens A.cache#"ring";
-    e := (exponents (product(for i from 0 to #T-1 list(if T#i<0 then (G#(n+i))^(-T#i) else (G#i)^(T#i))) % A.cache#"binomial"))#0;
-    if (take(e,{n,2*n-1}) == toList(n:0)) then {set{take(e,{0,n-1})}} else {set{}}
-    );
-
 
 
 -- method to glue fibers together (unexported)
@@ -332,9 +228,11 @@ latticeFiberGraph (Matrix, Matrix) := (A, starterMarkovBasis) -> (
 	if fiberStarters#?fiberVal then (fiberStarters#fiberVal)##(fiberStarters#fiberVal) = {elPos,elNeg} else fiberStarters#fiberVal = new MutableList from {{elPos,elNeg}};
         fiberValues#basisElement = fiberVal;
         );
+    indispensableFibers := toricIndispensableSet(A,starterMarkovBasis,ReturnFiberValues => true);
     A.cache#"FiberGraphComponents" = for val in keys fiberStarters list(
-	starter := fiberStarters#val#0#0;
 	buildFiber := (v -> flatten entries v) \ unique flatten toList fiberStarters#val;
+	if isMember(val,indispensableFibers) then continue ((v -> {v}) \ buildFiber);
+	starter := fiberStarters#val#0#0;
 	validIndexes := for i from 0 to k-1 list if fiberValues#(starterMB_{i}) << val then i else continue;
 	snippedMB := submatrix(starterMB,validIndexes);
 	finalR := (v -> new MutableList from {v}) \ buildFiber;	
@@ -381,21 +279,23 @@ latticePointsFromMoves(Matrix, Matrix) := (I, v) -> (
 
 fastFiberGraphInternal = method();
 fastFiberGraphInternal(Matrix, Matrix) := (A, starterMarkovBasis) -> (
-    starterMarkovBasis = entries starterMarkovBasis;
+    starterMB := entries starterMarkovBasis;
     n := numColumns A;
     fiberStarters := new MutableHashTable;
     fiberValues := new MutableHashTable;
-    for basis in starterMarkovBasis do(
+    for basis in starterMB do(
         elPos := for coord in basis list(if coord >= 0 then coord else 0);
         elNeg := elPos - basis;
         fiberVal := flatten entries (A * transpose matrix{elPos});
         if fiberStarters#?fiberVal then (fiberStarters#fiberVal)##(fiberStarters#fiberVal) = {elPos,elNeg} else fiberStarters#fiberVal = new MutableList from {{elPos,elNeg}};
         fiberValues#basis = fiberVal;
         );
+    indispensableFibers := toricIndispensableSet(A,starterMarkovBasis,ReturnFiberValues => true);
     A.cache#"FiberGraphComponents" = for val in keys fiberStarters list(
-        validMoves := for move in starterMarkovBasis list if (fiberValues#move << val) and (fiberValues#move != val) then move else continue;
+	buildFiber := unique flatten toList fiberStarters#val;
+	if isMember(val,indispensableFibers) then continue ((v -> {v}) \ buildFiber);
+        validMoves := for move in starterMB list if (fiberValues#move << val) and (fiberValues#move != val) then move else continue;
         validMoves = new MutableHashTable from ((v -> {v,true}) \ validMoves);
-        buildFiber := unique flatten toList fiberStarters#val;
         for i from 0 to #buildFiber - 1 list(
             cc := set {buildFiber#i};
             lenCC := 0;
@@ -581,7 +481,7 @@ randomMarkov(Matrix, Ring) := opts -> (A, R) -> (
 
 countMarkov = method(
     Options => {
-	Algorithm => "decompose"
+	Algorithm => "fast"
 	}
     )
 countMarkov Matrix := opts -> A -> (
@@ -598,24 +498,37 @@ countMarkov Matrix := opts -> A -> (
     )
 
 
+toricIndispensableSet = method(
+    Options => {
+	ReturnFiberValues => false
+	}
+    );
 
-toricIndispensableSet = method()
-toricIndispensableSet Matrix := A -> (
-    fiberComponents := fiberGraph(A,
-        ReturnConnectedComponents => true,
-        CheckInput => true,
-        Algorithm => "fast");
-    indispensables := flatten for vertexList in fiberComponents list (
-        if (
-            #vertexList == 2 and
-            #vertexList#0 == 1 and
-            #vertexList#1 == 1
-            ) then vertexList#0 - vertexList#1 else continue
-        );
-    matrix indispensables
+toricIndispensableSet Matrix := opts -> A -> (
+    starterMarkovBasis := toricMarkov A;
+    toricIndispensableSet(A,starterMarkovBasis)
     )
 
-toricIndispensableSet(Matrix, Ring) := (A, R) -> (
+toricIndispensableSet (Matrix,Matrix) := opts -> (A,starterMarkovBasis) -> (
+    starterMB := entries starterMarkovBasis;
+    B := for el in starterMB list(
+	elPos := for coord in el list(if coord >= 0 then coord else 0);
+	{elPos,elPos - el}
+	);
+    F := for pair in B list(
+	newB := flatten delete(pair,B);
+	check0 := all(newB,z -> not all(pair#0-z,y -> y>=0));
+	check1 := all(newB,z -> not all(pair#1-z,y -> y>=0));
+        check2 := not isMember(pair#0,newB);
+	check3 := not isMember(pair#1,newB);
+	if check0 and check1 and check2 and check3 then pair#0 - pair#1 else continue
+	);
+    if not opts.ReturnFiberValues then matrix F
+    else for el in F list flatten entries (A * transpose matrix{for coord in el list(if coord >= 0 then coord else 0)})
+    );
+
+
+toricIndispensableSet(Matrix, Ring) := opts -> (A, R) -> (
     indispensableMatrix := toricIndispensableSet A;
     toBinomial(indispensableMatrix, R)
     )
@@ -1238,7 +1151,7 @@ E9=transpose matrix {{0,0,0,0,0,0,0,0,0,0,1,0,0},
     {0,0,0,0,0,0,0,0,0,0,0,0,1}};
 
 
-A=2;
+A=3;
 E8=transpose matrix {{1,0,-3,-5,-7,0,0,0,0,0,0,0,0},
     {0,0,1,0,0,0,0,0,0,0,0,0,0},
     {0,0,0,1,0,0,0,0,0,0,0,0,0},
