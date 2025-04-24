@@ -411,6 +411,15 @@ listProd List := L -> (
     );
 
 
+-- sortMarkov takes a list L of elements of a minimal Markov basis of a matrix A
+-- and returns a minimal Markov basis of elements whose first non-zero entry is positive
+-- the elements are then sorted by fiber, which are sorted lexicographically (E.g. sort subsets(4, 2))
+sortMarkov = method()
+sortMarkov(List, Matrix) := (L, A) -> (
+		L = (rsort(L | -L))_{0 .. #L -1};
+		sort(L, x -> first entries transpose sum for i from 0 to #x -1 list if x_i > 0 then x_i * A_{i} else continue)
+		)
+
 markovBases = method(
     Options => {
         CheckInput => true
@@ -434,6 +443,7 @@ markovBases Matrix := opts -> A -> (
                 )
             )
         );
+		markovBasesAsLists = sort(sortMarkov \ markovBasesAsLists);
     for markovBasisAsList in markovBasesAsLists list matrix flatten markovBasisAsList
     );
 
@@ -461,7 +471,7 @@ randomMarkov Matrix := opts -> A -> (
         allFibersRandomSpanningTree := for fiberConnectedComponents in allFibersConnectedComponents list(
             pruferSequence for j from 1 to #fiberConnectedComponents-2 list random(#fiberConnectedComponents)
             );
-        matrix flatten for k from 0 to #allFibersRandomSpanningTree-1 list(
+        matrix sortMarkov flatten for k from 0 to #allFibersRandomSpanningTree-1 list(
             for edge in allFibersRandomSpanningTree#k list(
                 randomPairOfFiberElements := for l in keys edge list allFibersConnectedComponents#k#l#(random(#allFibersConnectedComponents#k#l));
                 randomPairOfFiberElements#0-randomPairOfFiberElements#1
@@ -1075,7 +1085,11 @@ assert(
 
 
 end--
+restart
+needsPackage "AllMarkovBases"
+installPackage "AllMarkovBases"
 
+check AllMarkovBases
 
 E2=transpose matrix {{1,0,-3,-5,-7,0,0,0,0,0,0,0,0},
     {0,0,1,0,0,0,0,0,0,0,0,0,0},
@@ -1176,6 +1190,7 @@ E8=transpose matrix {{1,0,-3,-5,-7,0,0,0,0,0,0,0,0},
 
 
 
+E4
 
 cF = (m) -> binomial(m+4, 4);
 elapsedTime U = countMarkov E4;
@@ -1184,7 +1199,6 @@ elapsedTime W = 5^3 * (cF(0))^8 * (cF(A))^8 * (cF(2*A))^4 * (cF(3*A))^4 * (cF(4*
 U
 V
 W
-
 
 
 
@@ -1202,9 +1216,24 @@ cF = (m) -> binomial(m+b, b);
 10 + 8 * cF(0) + 8 * cF(2024) + 4 * cF(4048) + 4 * cF(6072) + 2 * cF(8096) + 2 * cF(10120) + cF(14168)
 
 
-
-
-
-
-
 fiberGraph' = profile fiberGraph
+
+
+
+
+debugLevel = 10
+elapsedTime countMarkov(E8, Algorithm => "decompose") -- 5.86078 seconds
+elapsedTime countMarkov(E8, Algorithm => "fast") -- 34.2109 seconds
+elapsedTime countMarkov(E8, Algorithm => "lattice") -- 156.734 seconds
+remove(E8.cache, "FiberGraphComponents")
+
+
+
+for key in keys fiberValues do (
+    v := transpose matrix {(fiberValues#key)};
+    print(numRows ((pointsInFiber(A, v))#"gen"));
+    );
+
+debugLevel = 2
+showNmzOptions()
+setNmzOption("normal_l", true)
