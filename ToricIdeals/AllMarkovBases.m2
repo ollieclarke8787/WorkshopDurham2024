@@ -1,6 +1,6 @@
 newPackage(
     "AllMarkovBases",
-    Version => "0.1",
+    Version => "1.0",
     Date => "December 16, 2024",
     Headline => "package for computing all minimal Markov bases
     of a configuration matrix",
@@ -51,7 +51,7 @@ fiberGraph = method(
         ReturnConnectedComponents => false,
         CheckInput => true,
         Algorithm => "graph", -- "decompose","lattice","fast"(RECOMMENDED),"graph",
-	fiber => {}
+        fiber => {}
         }
     );
 fiberGraph Matrix := opts -> A -> (
@@ -62,22 +62,22 @@ fiberGraph Matrix := opts -> A -> (
         if not A.cache#?"FiberGraphComponents" then (
             starterMarkovBasis = toricMarkov A;
             if opts.CheckInput then ( -- check whether \NN A is a pointed cone
-		if starterMarkovBasis == 0 then error("There are no Markov bases");
+                if starterMarkovBasis == 0 then error("There are no Markov bases");
                 for basisElement in entries starterMarkovBasis do (
                     if (all(basisElement, z -> z >= 0) or all(basisElement, z -> z <= 0)) then error("semigroup not pointed");
                     );
                 );
-	    if opts.fiber != {} then return decomposeFiberGraph(A,starterMarkovBasis,opts.fiber);
+            if opts.fiber != {} then return decomposeFiberGraph(A,starterMarkovBasis,opts.fiber);
             if opts.Algorithm == "fast" then (
                 fastFiberGraphInternal(A, starterMarkovBasis);
                 )
             else if opts.Algorithm == "graph" then (
                 graphicFiberGraph(A, starterMarkovBasis);
                 )
-	    else if opts.Algorithm == "lattice" then (
+            else if opts.Algorithm == "lattice" then (
                 latticeFiberGraph(A, starterMarkovBasis);
                 )
-	     else if opts.Algorithm == "decompose" then (
+            else if opts.Algorithm == "decompose" then (
                 decomposeFiberGraph(A, starterMarkovBasis,opts.fiber);
                 )
             else error("unknown option for Algorithm");
@@ -93,7 +93,7 @@ fiberGraph Matrix := opts -> A -> (
                     if (all(basisElement, z -> z >= 0) or all(basisElement, z -> z <= 0)) then error("semigroup not pointed");
                     );
                 );
-	    if opts.fiber != {} then return flatten decomposeFiberGraph(A,starterMarkovBasis,opts.fiber);
+            if opts.fiber != {} then return flatten decomposeFiberGraph(A,starterMarkovBasis,opts.fiber);
             if opts.Algorithm == "graph" then (
                 graphicFiberGraph(A, starterMarkovBasis);
                 )
@@ -104,7 +104,7 @@ fiberGraph Matrix := opts -> A -> (
     )
 
 
---Algorithm 3: decompose fiber into smaller fibers 
+--Algorithm 3: decompose fiber into smaller fibers
 decomposeFiberGraph = method();
 decomposeFiberGraph (Matrix, Matrix,List) := (A, starterMarkovBasis,fiber) -> (
     starterMB := entries starterMarkovBasis;
@@ -117,38 +117,38 @@ decomposeFiberGraph (Matrix, Matrix,List) := (A, starterMarkovBasis,fiber) -> (
         );
     finalR := new MutableHashTable;
     for val in keys fiberStarters do(
-	buildFiber := flatten toList fiberStarters#val;
-	finalR#val = (v -> {v}) \ (unique buildFiber);
-	fiberStarters#val = {set buildFiber};
-	);
+        buildFiber := flatten toList fiberStarters#val;
+        finalR#val = (v -> {v}) \ (unique buildFiber);
+        fiberStarters#val = {set buildFiber};
+        );
     if not A.cache#?"fiberStarters" then A.cache#"fiberStarters" = fiberStarters;
     local fiberValuesPoset;
     if fiber == {} then (fiberValuesPoset = poset(keys fiberStarters,(x,y) -> x<<y);)
     else (
-	snippedStarters := for starter in keys fiberStarters list(if starter << fiber then starter else continue);
-	fiberValuesPoset = poset(toList(set snippedStarters + set {fiber}),(x,y) -> x<<y);
-	);
+        snippedStarters := for starter in keys fiberStarters list(if starter << fiber then starter else continue);
+        fiberValuesPoset = poset(toList(set snippedStarters + set {fiber}),(x,y) -> x<<y);
+        );
     fibersLeft := new MutableList from fiberValuesPoset#GroundSet;
     tempPoset := fiberValuesPoset;
     indispensableFibers := toricIndispensableSet(A,starterMarkovBasis,ReturnFiberValues => true);
     local R;
     local rvs;
     while #fibersLeft>0 do(
-	for minimalElement in minimalElements tempPoset do(
-	    remove(fibersLeft,position(toList fibersLeft,z -> z==minimalElement));
-	    if isMember(minimalElement,indispensableFibers) then continue;
-	    A.cache#"current" = minimalElement;
-	    rvs = drop(sort principalOrderIdeal(fiberValuesPoset,minimalElement),-1);
-	    if minimalElement != fiber and #rvs == 0 then continue;
-	    if finalR#?minimalElement then (
-		R = integrateLists(recursiveFiber(minimalElement,rvs,A),(v -> set toList v) \ finalR#minimalElement);
-		)
-	    else R = recursiveFiber(minimalElement,rvs,A);
-	    finalR#minimalElement = (v -> toList v) \ R;
-	    (A.cache#"fiberStarters")#minimalElement = {union R};
-	    );
-	tempPoset = subposet(fiberValuesPoset,toList fibersLeft);
-	);
+        for minimalElement in minimalElements tempPoset do(
+            remove(fibersLeft,position(toList fibersLeft,z -> z==minimalElement));
+            if isMember(minimalElement,indispensableFibers) then continue;
+            A.cache#"current" = minimalElement;
+            rvs = drop(sort principalOrderIdeal(fiberValuesPoset,minimalElement),-1);
+            if minimalElement != fiber and #rvs == 0 then continue;
+            if finalR#?minimalElement then (
+                R = integrateLists(recursiveFiber(minimalElement,rvs,A),(v -> set toList v) \ finalR#minimalElement);
+                )
+            else R = recursiveFiber(minimalElement,rvs,A);
+            finalR#minimalElement = (v -> toList v) \ R;
+            (A.cache#"fiberStarters")#minimalElement = {union R};
+            );
+        tempPoset = subposet(fiberValuesPoset,toList fibersLeft);
+        );
     if fiber=={} then A.cache#"FiberGraphComponents" = values finalR else finalR#fiber
     );
 
@@ -165,11 +165,11 @@ recursiveFiber = method();
 recursiveFiber (List, List, Matrix) := (val, rvs, A) -> (
     local output;
     residVals := for i from 0 to #rvs - 1 list(
-	resid := val-rvs#i;
-	if not all(resid,z -> z>=0) then continue;
-	output := fiberAdd(union recursiveFiber(resid, rvs_{0..i}, A), ((A.cache#"fiberStarters")#(rvs#i))#0);
-	if output == {set{}} then continue else output
-	);
+        resid := val-rvs#i;
+        if not all(resid,z -> z>=0) then continue;
+        output := fiberAdd(union recursiveFiber(resid, rvs_{0..i}, A), ((A.cache#"fiberStarters")#(rvs#i))#0);
+        if output == {set{}} then continue else output
+        );
     if #residVals > 0 then fold(residVals,integrateLists)
     else if (A.cache#"fiberStarters")#?val and (A.cache#"current" != val) then (A.cache#"fiberStarters")#val
     else endFiber(val,A)
@@ -180,9 +180,9 @@ endFiber = method();
 endFiber (List, Matrix) := (val, A) -> (
     output := {set{}};
     for row in entries toricMarkov matrix{{transpose matrix {val},A}} do(
-	r := drop(row,1);
-	if row#0 == 1 and all(r,z->z<=0) then (output = {set{-r}}; break;);
-	);
+        r := drop(row,1);
+        if row#0 == 1 and all(r,z->z<=0) then (output = {set{-r}}; break;);
+        );
     (A.cache#"fiberStarters")#val=output;
     output
     );
@@ -194,14 +194,14 @@ integrateLists (List,List) := (L1, L2) -> (
     L1 = new MutableList from L1;
     L2 = new MutableList from L2;
     for i from 0 to #L1 - 1 do(
-	for j from 0 to #L2 - 1 do(
-	    if #(L1#i * L2#j)>0 then (
-		u := L1#i + L2#j;
-		L1#i = u;
-		L2#j = u;
-		);
-	    );
-	);
+        for j from 0 to #L2 - 1 do(
+            if #(L1#i * L2#j)>0 then (
+                u := L1#i + L2#j;
+                L1#i = u;
+                L2#j = u;
+                );
+            );
+        );
     unique ((toList L1) | (toList L2))
     );
 
@@ -221,43 +221,45 @@ latticeFiberGraph (Matrix, Matrix) := (A, starterMarkovBasis) -> (
     fiberStarters := new MutableHashTable;
     fiberValues := new MutableHashTable;
     for i from 0 to k - 1 do(
-	basisElement := starterMB_{i};
+        basisElement := starterMB_{i};
         elPos := transpose matrix{for j from 0 to n-1 list(if basisElement_(j,0) >= 0 then basisElement_(j,0) else 0)};
-	elNeg := elPos - basisElement;
+        elNeg := elPos - basisElement;
         fiberVal := flatten entries (A * elPos);
-	if fiberStarters#?fiberVal then (fiberStarters#fiberVal)##(fiberStarters#fiberVal) = {elPos,elNeg} else fiberStarters#fiberVal = new MutableList from {{elPos,elNeg}};
+        if fiberStarters#?fiberVal then (fiberStarters#fiberVal)##(fiberStarters#fiberVal) = {elPos,elNeg} else fiberStarters#fiberVal = new MutableList from {{elPos,elNeg}};
         fiberValues#basisElement = fiberVal;
         );
     indispensableFibers := toricIndispensableSet(A,starterMarkovBasis,ReturnFiberValues => true);
     A.cache#"FiberGraphComponents" = for val in keys fiberStarters list(
-	buildFiber := (v -> flatten entries v) \ unique flatten toList fiberStarters#val;
-	if isMember(val,indispensableFibers) then continue ((v -> {v}) \ buildFiber);
-	starter := fiberStarters#val#0#0;
-	validIndexes := for i from 0 to k-1 list if fiberValues#(starterMB_{i}) << val then i else continue;
-	snippedMB := submatrix(starterMB,validIndexes);
-	finalR := (v -> new MutableList from {v}) \ buildFiber;	
+        print("-- new val");
+        buildFiber := (v -> flatten entries v) \ unique flatten toList fiberStarters#val;
+        if isMember(val,indispensableFibers) then continue ((v -> {v}) \ buildFiber);
+        starter := fiberStarters#val#0#0;
+        validIndexes := for i from 0 to k-1 list if fiberValues#(starterMB_{i}) << val then i else continue;
+        snippedMB := submatrix(starterMB,validIndexes);
+        finalR := (v -> new MutableList from {v}) \ buildFiber;
         lPs := latticePointsFromMoves(snippedMB,starter);
-	lPs = new MutableList from lPs - set buildFiber;
- 	local reset;
- 	while #lPs>0 do(
- 	    for point in lPs do(
- 		reset=false;
- 		for i from 0 to #buildFiber-1 do(
- 		    if reset then break;
- 		    for el in finalR#i do(
- 		        if reset then break;
- 			if (not all(point,el,(y,z) -> y==0 or z==0)) and point != el then (
- 			    (finalR#i)##(finalR#i) = point;
- 			    remove(lPs,position(toList(lPs),z -> z == point));
- 			    reset=true;
- 			    );
- 			);
- 		    );
- 		);
- 	    );
-	(v -> toList v) \ finalR
-	);
-    
+        lPs = new MutableList from lPs - set buildFiber;
+        print("-- got the lattice points");
+        local reset;
+        while #lPs>0 do(
+            for point in lPs do(
+                reset=false;
+                for i from 0 to #buildFiber-1 do(
+                    if reset then break;
+                    for el in finalR#i do(
+                        if reset then break;
+                        if (not all(point,el,(y,z) -> y==0 or z==0)) and point != el then (
+                            (finalR#i)##(finalR#i) = point;
+                            remove(lPs,position(toList(lPs),z -> z == point));
+                            reset=true;
+                            );
+                        );
+                    );
+                );
+            );
+        (v -> toList v) \ finalR
+        );
+
     );
 
 
@@ -265,13 +267,24 @@ latticeFiberGraph (Matrix, Matrix) := (A, starterMarkovBasis) -> (
 latticePointsFromMoves = method()
 latticePointsFromMoves(Matrix, Matrix) := (I, v) -> (
     M := I | v;
-    normalizOutput := normaliz(M, "inhom_inequalities");
-    normalizOut := transpose normalizOutput#"gen"_{0..(numColumns normalizOutput#"gen")-2};   
+    normalizOutput := normaliz2(M, "inhom_inequalities");
+    normalizOut := transpose normalizOutput#"gen"_{0..(numColumns normalizOutput#"gen")-2};
     for i from 0 to numColumns normalizOut - 1 list flatten entries (I*(normalizOut_{i})+v)
-		)
+    )
 
 
-
+-- use Normaliz to comptue the points in a fiber
+-- A is the matrix of the toric ideal
+-- v if the fiber:
+-- return all point in \NN^n \cap \{x : Ax = Av\}
+pointsInFiber = method()
+pointsInFiber(Matrix, Matrix) := (A, v) -> (
+    n := numColumns A;
+    I := id_(ZZ^n);
+    O := transpose matrix {toList(n : 0)};
+    M := (I | O) || (A | -v);
+    normaliz2(M, "inhom_inequalities")
+    )
 
 
 --Algorithm 1: faster fiberGraph
@@ -372,6 +385,10 @@ graphicFiberGraph(Matrix, Matrix) := (A, starterMarkovBasis) -> (
     )
 
 
+
+
+
+
 pruferSequence = method();
 pruferSequence List := L -> (
     numberOfNodes := #L + 2;
@@ -426,25 +443,25 @@ markovBases = method(
         }
     );
 markovBases Matrix := opts -> A -> (
-    allFibersConnectedComponents := fiberGraph(A,
-        ReturnConnectedComponents => true,
-        CheckInput => opts.CheckInput,
-        Algorithm => "fast");
-    allFibersSpanningTrees := for fiberConnectedComponents in allFibersConnectedComponents list(
+		allFibersConnectedComponents := fiberGraph(A,
+				ReturnConnectedComponents => true,
+				CheckInput => opts.CheckInput,
+				Algorithm => "fast");
+		allFibersSpanningTrees := for fiberConnectedComponents in allFibersConnectedComponents list(
         for pruferList in listProd splice {
             #fiberConnectedComponents - 2 : toList(0..#fiberConnectedComponents-1)
             } list pruferSequence pruferList
         );
     markovBasesAsLists := listProd for k from 0 to #allFibersSpanningTrees-1 list(
         flatten for spanningTree in allFibersSpanningTrees#k list(
-            listProd for edge in spanningTree list(
+						listProd for edge in spanningTree list(
                 pairsOfFiberElements := listProd for l in keys edge list allFibersConnectedComponents#k#l;
                 for pair in pairsOfFiberElements list pair#0-pair#1
                 )
             )
         );
-		markovBasesAsLists = sort(sortMarkov \ markovBasesAsLists);
-    for markovBasisAsList in markovBasesAsLists list matrix flatten markovBasisAsList
+		markovBasesAsLists = sort(apply(markovBasesAsLists, x -> sortMarkov(flatten x, A)));
+		for markovBasisAsList in markovBasesAsLists list matrix markovBasisAsList
     );
 
 markovBases(Matrix, Ring) := opts -> (A, R) -> (
@@ -471,12 +488,14 @@ randomMarkov Matrix := opts -> A -> (
         allFibersRandomSpanningTree := for fiberConnectedComponents in allFibersConnectedComponents list(
             pruferSequence for j from 1 to #fiberConnectedComponents-2 list random(#fiberConnectedComponents)
             );
-        matrix sortMarkov flatten for k from 0 to #allFibersRandomSpanningTree-1 list(
-            for edge in allFibersRandomSpanningTree#k list(
-                randomPairOfFiberElements := for l in keys edge list allFibersConnectedComponents#k#l#(random(#allFibersConnectedComponents#k#l));
-                randomPairOfFiberElements#0-randomPairOfFiberElements#1
-                )
-            )
+        matrix sortMarkov(
+						flatten for k from 0 to #allFibersRandomSpanningTree-1 list(
+								for edge in allFibersRandomSpanningTree#k list(
+										randomPairOfFiberElements := for l in keys edge list allFibersConnectedComponents#k#l#(random(#allFibersConnectedComponents#k#l));
+										randomPairOfFiberElements#0-randomPairOfFiberElements#1
+										)
+								),
+						A)
         );
     if (not opts.AlwaysReturnList and opts.NumberOfBases == 1) then randomMarkovBases_0 else randomMarkovBases
     );
@@ -1091,6 +1110,10 @@ installPackage "AllMarkovBases"
 
 check AllMarkovBases
 
+#markovBases matrix "5,6,7,8,9"
+markovBases matrix "5,6,7,8,9"
+randomMarkov matrix "5,6,7,8,9"
+
 E2=transpose matrix {{1,0,-3,-5,-7,0,0,0,0,0,0,0,0},
     {0,0,1,0,0,0,0,0,0,0,0,0,0},
     {0,0,0,1,0,0,0,0,0,0,0,0,0},
@@ -1219,14 +1242,11 @@ cF = (m) -> binomial(m+b, b);
 fiberGraph' = profile fiberGraph
 
 
-
-
 debugLevel = 10
 elapsedTime countMarkov(E8, Algorithm => "decompose") -- 5.86078 seconds
 elapsedTime countMarkov(E8, Algorithm => "fast") -- 34.2109 seconds
 elapsedTime countMarkov(E8, Algorithm => "lattice") -- 156.734 seconds
 remove(E8.cache, "FiberGraphComponents")
-
 
 
 for key in keys fiberValues do (
