@@ -43,7 +43,7 @@ export {
 
 
 
-
+normaliz2 = profile normaliz
 
 
 fiberGraph = method(
