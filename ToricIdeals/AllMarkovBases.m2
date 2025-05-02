@@ -130,13 +130,11 @@ decomposeFiberGraph (Matrix, Matrix,List) := (A, starterMarkovBasis,fiber) -> (
         );
     fibersLeft := new MutableList from fiberValuesPoset#GroundSet;
     tempPoset := fiberValuesPoset;
-    indispensableFibers := toricIndispensableSet(A,starterMarkovBasis,ReturnFiberValues => true);
     local R;
     local rvs;
     while #fibersLeft>0 do(
         for minimalElement in minimalElements tempPoset do(
             remove(fibersLeft,position(toList fibersLeft,z -> z==minimalElement));
-            if isMember(minimalElement,indispensableFibers) then continue;
             A.cache#"current" = minimalElement;
             rvs = drop(sort principalOrderIdeal(fiberValuesPoset,minimalElement),-1);
             if minimalElement != fiber and #rvs == 0 then continue;
