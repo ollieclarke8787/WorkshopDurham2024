@@ -14,7 +14,7 @@ newPackage(
         },
     AuxiliaryFiles => false,
     DebuggingMode => false,
-    PackageExports => {"FourTiTwo","Graphs","TensorComplexes","Polyhedra","Posets","SubalgebraBases","LLLBases","Normaliz"}
+    PackageExports => {"FourTiTwo","Graphs","TensorComplexes","Posets","SubalgebraBases","Normaliz"}
     )
 
 -------------
@@ -30,6 +30,7 @@ export {
     "fiberGraph",
     "ReturnConnectedComponents",
     "fiber",
+    "countMarkov",
     "toricIndispensableSet",
     "ReturnFiberValues",
     "toricUniversalMarkov",
@@ -419,7 +420,7 @@ latticeFiberGraph Matrix := A -> (
 latticePointsFromMoves = method();
 latticePointsFromMoves(Matrix, Matrix) := (I, v) -> (
     M := I | v;
-    normalizOutput := normaliz2(M, "inhom_inequalities");
+    normalizOutput := normaliz(M, "inhom_inequalities"); --normaliz(M, "inhom_inequalities");
     normalizOut := transpose normalizOutput#"gen"_{0..(numColumns normalizOutput#"gen")-2};
     for i from 0 to numColumns normalizOut - 1 list flatten entries (I*(normalizOut_{i})+v)
     );
@@ -435,7 +436,7 @@ pointsInFiber(Matrix, Matrix) := (A, v) -> (
     I := id_(ZZ^n);
     O := transpose matrix {toList(n : 0)};
     M := (I | O) || (A | -v);
-    normaliz2(M, "inhom_inequalities")
+    normaliz(M, "inhom_inequalities") --normaliz(M, "inhom_inequalities")
     );
 
 
