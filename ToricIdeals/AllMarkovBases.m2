@@ -1224,7 +1224,7 @@ assert(
 
 end--
 restart
-needsPackage "AllMarkovBases"
+needsPackage "AllMarkovBases" 
 installPackage "AllMarkovBases"
 
 check AllMarkovBases

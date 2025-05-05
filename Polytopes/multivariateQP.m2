@@ -79,10 +79,17 @@ multivariateQuasiPolynomial(Module, List, List) := (lattice, cosetReps, polys) -
 		-- check that the cosetReps lie in distinct cosets of the lattice
 		G := mingens lattice;
 		assert(#(set for g in cosetReps list g % G) == #cosetReps);
-		C := apply(cosetReps, x -> x % G); -- sorted coset reps
-		-- TODO: sort the columns of C using:
-		-- C := sort(fold(cosetReps, (x, y) -> x | y) % G); -- sorted coset reps
+
+		-- reduce the coset representatives modulo G
+		cosetReps = for c in cosetReps list (c % G);
+		-- Make a hashtable of polynomials for each coset representative
+		H := hashTable for i from 0 to #cosetReps -1 list cosetReps_i => polys_i;
+		-- sort the coset representatives
+		C := sort(fold(cosetReps, (x, y) -> x | y)); -- sorted coset reps
+		C = for i from 0 to #cosetReps - 1 list C_{i};
+
 		-- and sort the list of polys in the same way
+		sortedPolys := for c in C list H#(c % G); -- sorted polys
 
 		-- check that the polys belong to the same ring with n variables
 		assert(numgens ring matrix {polys} == n);
@@ -92,7 +99,7 @@ multivariateQuasiPolynomial(Module, List, List) := (lattice, cosetReps, polys) -
 		new MultivariateQuasiPolynomial from {
 				cache => new CacheTable,
 				Lattice => lattice, -- full-rank ZZ-Module
-			  PolynomialFibers => cosetPolys
+			  	PolynomialFibers => cosetPolys
 				}
 		)
 
@@ -101,6 +108,10 @@ MultivariateQuasiPolynomial Matrix := (F, v) -> (
 		-- TODO: check that v lives in the right space
 		F#PolynomialFibers#(v % (mingens F#Lattice)) toSequence first entries transpose v
 		)
+
+
+
+
 
 
 
@@ -150,3 +161,47 @@ multivariateQuasiPolynomial(M, cosets, polys')
 
 
 F matrix {{3},{10}}
+
+
+
+
+
+
+-- Constructing a multivariate quasi polynomial from a polytope and polynomial
+
+-- TODO: Check the setup:
+-- 1. P is a polytope
+-- 2. w is a QuasiPolynomial acting on the lattice of the ambient space of P
+
+-- First we follow the setup where e = 0 in Theorem 1.1 of https://arxiv.org/pdf/2402.11328
+
+
+ehrhartQuasiPolynomial = method()
+ehrhartQuasiPolynomial(Polyhedron, MultivariateQuasiPolynomial) := (P, w) -> (
+	-- R := ring w; -- TODO: define this ...
+	-- ambientDimension := rank target vertices P; 
+	-- assert(numgens R == ambientDimension); -- check that the polynomial lie in a ring with the right number of variables
+
+
+
+	-- output a quasi polynomial of P with respect to the weight f
+	-- ...
+)
+
+ehrhartSeries = method()
+ehrhartSeries(Polyhedron, RingElement) := (P, f) -> (
+	R := ring f;
+	ambientDimension := rank target vertices P; 
+	assert(numgens R == ambientDimension); -- check that the polynomial lie in a ring with the right number of variables
+
+
+
+	-- output a quasi polynomial of P with respect to the weight f
+	-- ...
+)
+
+
+
+
+P = convexHull matrix {{0,0,1,3}, {0,1,0,3}}
+ambientDimension = rank target vertices P 
