@@ -34,7 +34,8 @@ export {
     "toricIndispensableSet",
     "ReturnFiberValues",
     "toricUniversalMarkov",
-    "computeFiber"
+    "computeFiber",
+    "fibAddConnected"
     }
 
 ----------
@@ -47,6 +48,8 @@ export {
 
 
 
+
+
 -- computes one fiber
 computeFiber = method(
     Options => {
@@ -54,34 +57,47 @@ computeFiber = method(
 	Algorithm => "groebner" -- "groebner" (better for simpler matrices), "markov" (better for more complicated matrices) or "lattice" using the Normaliz algorithm
         }
     );
+
 computeFiber (Matrix,Matrix) := opts -> (A, b) -> (
     if not A.cache#?"MarkovBasis" then setupFibers A;
     val := flatten entries b;
     if opts.ReturnConnectedComponents and opts.Algorithm =="lattice" then error("Lattice algorithm won't compute connected components");
-    if opts.Algorithm == "lattice" and not (A.cache#"fibers")#?val then(
-	u:={};
-	for row in entries toricMarkov (b | A) do(
-	    r := drop(row,1);
-	    if row#0 == 1 and all(r,z->z<=0) then (u = {-r}; break;);
-	    );
-	(A.cache#"fibers")#val = if #u==0 then set{} else set latticePointsFromMoves(transpose A.cache#"MarkovBasis",transpose matrix u);
-	)else if not (A.cache#"fibers")#?val or (opts.ReturnConnectedComponents and not (A.cache#"fibers")#?val) then(
-	if opts.Algorithm == "groebner" then(
-	    A.cache#"Ring" = ZZ(monoid[Variables => numRows A + numColumns A]);
-	    A.cache#"RingGenerators" = gens A.cache#"Ring";
-	    A.cache#"toricIdeal"=toricGroebner(id_(ZZ^(numRows A)) | A, A.cache#"Ring");
-	    );
-	if (A.cache#"fiberStarters")#?val and opts.ReturnConnectedComponents then (
-	    if opts.Algorithm == "markov" then ccFibersM(A,val) else ccFibersG(A,val);
-	    )else (
-	    if opts.Algorithm == "markov" then fibRecursionM(A,val) else fibRecursionG(A,val);
-	    );
-	);
+    (if opts.Algorithm == "lattice" and not (A.cache#"fibers")#?val then computeFiberInternalLattice(A,b,val)
+    else if not (A.cache#"fibers")#?val or (opts.ReturnConnectedComponents and (A.cache#"fiberStarters")#?val) then(
+	computeFiberInternal(A,val,ReturnConnectedComponents=>opts.ReturnConnectedComponents,Algorithm=>opts.Algorithm);
+	));
     if opts.ReturnConnectedComponents then (
 	if (A.cache#"fiberStarters")#?val then (A.cache#"fiberComponents")#val else {toList (A.cache#"fibers")#val}
-	)else(
-	toList (A.cache#"fibers")#val
-	)
+	)else toList (A.cache#"fibers")#val
+    );
+
+computeFiberInternalLattice = method();
+computeFiberInternalLattice (Matrix,Matrix,List) := (A,b,val) -> (
+    u:={};
+    for row in entries toricMarkov (b | A) do(
+	r := drop(row,1);
+	if row#0 == 1 and all(r,z->z<=0) then (u = {-r}; break;);
+	);
+    (A.cache#"fibers")#val = if #u==0 then set{} else set latticePointsFromMoves(transpose A.cache#"MarkovBasis",transpose matrix u);
+    );
+
+computeFiberInternal = method(
+    Options => {
+        ReturnConnectedComponents => false,
+	Algorithm => "groebner" -- "groebner" (better for simpler matrices) or "markov" (better for more complicated matrices)
+        }
+    );
+computeFiberInternal (Matrix,List) := opts -> (A,val) -> (
+    if opts.Algorithm == "groebner" then(
+	A.cache#"Ring" = ZZ(monoid[Variables => numRows A + numColumns A]);
+	A.cache#"RingGenerators" = gens A.cache#"Ring";
+	A.cache#"toricIdeal"=toricGroebner(id_(ZZ^(numRows A)) | A, A.cache#"Ring");
+	);
+    if (A.cache#"fiberStarters")#?val and opts.ReturnConnectedComponents then (
+	if opts.Algorithm == "markov" then ccFibersM(A,val) else ccFibersG(A,val);
+	)else (
+	if opts.Algorithm == "markov" then fibRecursionM(A,val) else fibRecursionG(A,val);
+	);
     );
 
 -- recursive method using groebner bases (unexported)
@@ -130,19 +146,24 @@ fibRecursionM (Matrix,List) := (A, val) -> (
 
 ccFibersG = method();
 ccFibersG (Matrix,List) := (A,val) -> (
-    out := for val2 in keys A.cache#"fiberStarters" list(
-	if not (val2 << val) then continue;
-	if val2==val and (A.cache#"fiberStarters")#?val then continue (A.cache#"fiberStarters")#val;
+    out := union for val2 in keys A.cache#"fiberStarters" list(
+	if val2 == val or not (val2 << val) then continue;
+	--if not (val2 << val) then continue;
+	--if val2==val and (A.cache#"fiberStarters")#?val then continue ((v->set{v})\(A.cache#"fiberStarters")#val);
 	resid := val-val2;
 	if (A.cache#"fiberStarters")#?resid then(
+	    if not (A.cache#"fiberComponents")#?resid then ccFibersG(A,resid);
+	    if not (A.cache#"fiberComponents")#?val2 then ccFibersG(A,val2);
+	    fibAddConnected((A.cache#"fiberComponents")#val2,(A.cache#"fiberComponents")#resid)
 	    )else(
-	    );
-	if not (A.cache#"fibers")#?resid then fibRecursionG(A,resid);
-	if #((A.cache#"fibers")#resid) == 0 then continue;
-	if not (A.cache#"fibers")#?val2 then fibRecursionG(A,val2);
-	fibAdd((A.cache#"fibers")#val2,(A.cache#"fibers")#resid)
+	    if not (A.cache#"fibers")#?resid then fibRecursionG(A,resid);
+	    if #((A.cache#"fibers")#resid) == 0 then continue;
+	    if not (A.cache#"fiberComponents")#?val2 then ccFibersG(A,val2);
+	    fibAddConnected((A.cache#"fiberComponents")#val2,{toList (A.cache#"fibers")#resid})
+	    )
 	);
-    local output;
+    out = apply(toList out,v->toList v);
+    output := out | apply(toList ((A.cache#"fiberStarters")#val - (flatten out)),v->{v});
     (A.cache#"fiberComponents")#val = output;
     (A.cache#"fibers")#val = flatten output;
     );
@@ -152,18 +173,21 @@ ccFibersG (Matrix,List) := (A,val) -> (
 ccFibersM = method();
 ccFibersM (Matrix,List) := (A,val) -> (
     out := union for val2 in keys A.cache#"fiberStarters" list(
-	if not (val2 << val) then continue;
-	if val2==val and (A.cache#"fiberStarters")#?val then continue (A.cache#"fiberStarters")#val;
+	if val2 == val or not (val2 << val) then continue;
 	resid := val-val2;
 	if (A.cache#"fiberStarters")#?resid then(
+	    if not (A.cache#"fiberComponents")#?resid then ccFibersM(A,resid);
+	    if not (A.cache#"fiberComponents")#?val2 then ccFibersM(A,val2);
+	    fibAddConnected((A.cache#"fiberComponents")#val2,(A.cache#"fiberComponents")#resid)
 	    )else(
-	    );
-	if not (A.cache#"fibers")#?resid then fibRecursionM(A,resid);
-	if #((A.cache#"fibers")#resid) == 0 then continue;
-	if not (A.cache#"fibers")#?val2 then fibRecursionM(A,val2);
-	fibAdd((A.cache#"fibers")#val2,(A.cache#"fibers")#resid)
+	    if not (A.cache#"fibers")#?resid then fibRecursionM(A,resid);
+	    if #((A.cache#"fibers")#resid) == 0 then continue;
+	    if not (A.cache#"fiberComponents")#?val2 then ccFibersM(A,val2);
+	    fibAddConnected((A.cache#"fiberComponents")#val2,{toList (A.cache#"fibers")#resid})
+	    )
 	);
-    local output;
+    out = apply(toList out,v->toList v);
+    output := out | apply(toList ((A.cache#"fiberStarters")#val - (flatten out)),v->{v});
     (A.cache#"fiberComponents")#val = output;
     (A.cache#"fibers")#val = flatten output;
     );
@@ -176,9 +200,9 @@ fibAdd (Set,Set) := (L1,L2) -> (
     set flatten for l1 in keys L1 list for l2 in keys L2 list l1+l2
     );
 
-fiberAdditionConnected = method();
-fiberAdditionConnected (List,List) := (L1,L2) -> (
-    unique flatten for l1 in L1 list for l2 in L2 list l1+l2
+fibAddConnected = method();
+fibAddConnected (List,List) := (L1,L2) -> (
+    set for l2 in L2 list union for l1 in L1 list fibAdd(set l1,set l2)
     );
 
 
