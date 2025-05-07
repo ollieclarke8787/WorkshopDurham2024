@@ -156,6 +156,11 @@ computeCCs List := L -> (
 
 
 
+
+
+
+
+
 computeFiberInternal = method(
     Options => {
         ReturnConnectedComponents => false,
@@ -957,16 +962,40 @@ doc ///
 -- Tests --
 -----------
 
+TEST /// -- a fiber of a monomial curve in A^3
+assert(
+    set computeFiber(matrix "3,5,11",matrix "8")
+    ==
+    set {{1,1,0}}
+    )
+///
+
+TEST /// -- a fiber of a monomial curve in A^4
+assert(
+    set computeFiber(matrix "8,9,10,11",matrix "37")
+    ==
+    set {{2,0,1,1},{0,3,1,0},{1,2,0,1},{1,1,2,0}}
+    )
+///
+
+TEST /// -- a fiber with connected components of a monomial curve in A^4
+assert(
+    set ((v-> set v)\computeFiber(matrix "3,4,6,8,12",matrix "12",ReturnConnectedComponents=>true))
+    ==
+    set {set {{4, 0, 0, 0, 0}, {0, 0, 2, 0, 0}, {2, 0, 1, 0, 0}}, set {{0, 0, 0, 0, 1}}, set {{0, 1, 0, 1, 0}, {0, 3, 0, 0, 0}}}
+    )
+///
+
 TEST /// -- unique minimal Markov basis for monomial curve in A^3
 assert(
-    set flatten ((v -> {v,-v}) \ entries (markovBases matrix "3,4,5")_0)
+    set entries (markovBases matrix "3,4,5")#0
     ==
-    set flatten ((v -> {v,-v}) \ entries toricMarkov matrix "3,4,5")
+    set entries toricMarkov matrix "3,4,5"
     )
 ///
 
 TEST ///
-assert(countMarkov matrix "3,4,5" == 1)
+assert(countMarkov matrix "2,4,5,8;7,2,6,1" == 1)
 ///
 
 TEST /// -- two minimal Markov bases for (CI) monomial curve in A^3
@@ -1209,3 +1238,79 @@ for key in keys fiberValues do (
 debugLevel = 2
 showNmzOptions()
 setNmzOption("normal_l", true)
+
+
+
+
+
+
+
+
+
+
+
+--time testing (DNF = >3 minutes)
+
+
+
+V1 = matrix "51,52,53,54,55,56,91,92,93,94,95,96,97,98,99,100,101"
+
+elapsedTime countMarkov(V1,FiberAlgorithm=>"fast") -- 0.7 seconds
+elapsedTime countMarkov(V1, FiberAlgorithm => "decompose") -- 3.0 seconds
+elapsedTime countMarkov(V1,FiberAlgorithm=>"lattice") -- DNF
+elapsedTime countMarkov(V1, FiberAlgorithm => "markov") -- 4.3 seconds
+
+--WINNER: fast
+
+
+
+B = matrix "1,2,6,12,24,48,96,128"
+
+elapsedTime countMarkov(B,FiberAlgorithm=>"fast") -- 4.0 seconds
+elapsedTime countMarkov(B, FiberAlgorithm => "decompose") -- 1.5 seconds
+elapsedTime countMarkov(B, FiberAlgorithm => "lattice") -- DNF
+elapsedTime countMarkov(B, FiberAlgorithm => "markov") -- 3.7 seconds
+
+--WINNER: decompose
+
+
+hi = matrix "1078,2947,3002,965,9041,7480"
+
+elapsedTime countMarkov(hi,FiberAlgorithm=>"fast") -- 0.67 seconds
+elapsedTime countMarkov(hi, FiberAlgorithm => "decompose") -- 34 seconds
+elapsedTime countMarkov(hi, FiberAlgorithm => "lattice") -- 0.5 seconds
+elapsedTime countMarkov(hi, FiberAlgorithm => "markov") -- 7.4 seconds
+
+--WINNER: lattice
+
+
+A=4;
+E8=transpose matrix {{1,0,-3,-5,-7,0,0,0,0,0,0,0,0},
+    {0,0,1,0,0,0,0,0,0,0,0,0,0},
+    {0,0,0,1,0,0,0,0,0,0,0,0,0},
+    {0,0,0,0,1,0,0,0,0,0,0,0,0},
+    {0,4,0,0,0,1,0,0,0,0,0,0,0},
+    {0,0,0,0,0,1,0,0,0,0,0,0,0},
+    {0,5,0,0,0,0,4,3,0,0,0,0,0},
+    {0,0,0,0,0,0,7,0,0,0,0,0,0},
+    {0,10,0,0,0,0,0,7,0,0,0,0,0},
+    {0,0,0,0,0,0,0,0,-1,A,0,0,0},
+    {0,6,0,0,0,0,0,0,A-1,0,0,0,0},
+    {0,0,0,0,0,0,0,0,0,A-1,0,0,0},
+    {0,0,0,0,0,0,0,0,0,A-1,0,0,0},
+    {0,0,0,0,0,0,0,0,0,A-1,0,0,0},
+    {0,0,0,0,0,0,0,0,0,A-1,0,0,0},
+    {0,0,0,0,0,0,0,0,0,A-1,0,0,0},
+    {0,0,0,0,0,0,0,0,0,0,-3,2,2},
+    {0,7,0,0,0,0,0,0,0,0,1,0,0},
+    {0,7,0,0,0,0,0,0,0,0,0,1,0},
+    {0,0,0,0,0,0,0,0,0,0,0,0,1}};
+
+elapsedTime countMarkov(E8, FiberAlgorithm => "fast") -- 67.7 seconds
+elapsedTime countMarkov(E8, FiberAlgorithm => "decompose") -- DNF
+elapsedTime countMarkov(E8, FiberAlgorithm => "lattice") -- DNF
+elapsedTime countMarkov(E8, FiberAlgorithm => "markov") -- 13.6 seconds
+
+--WINNER: markov
+
+
