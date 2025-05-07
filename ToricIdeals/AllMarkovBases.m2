@@ -52,31 +52,31 @@ export {
 computeFiber = method(
     Options => {
         ReturnConnectedComponents => false,
-	FiberAlgorithm => "decompose" -- choose from {decompose,fast,lattice,markov} ordered from best to worst
+	FiberAlgorithm => "decompose" -- choose from {decompose,fast,markov,lattice} ordered from best to worst
         }
     );
 
-computeFiber (Matrix,Matrix) := opts -> (A, b) -> (
+computeFiber (Matrix,Vector) := opts -> (A, b) -> (
     if not A.cache#?"MarkovBasis" then setupFibers A;
-    val := flatten entries b;
+    val := entries b;
     if not (A.cache#"fibers")#?val or (opts.ReturnConnectedComponents and (A.cache#"fiberStarters")#?val and not (A.cache#"fiberComponents")#?val) then(
-	if opts.FiberAlgorithm == "lattice" then computeFiberInternalLattice(A,b,val,ReturnConnectedComponents=>opts.ReturnConnectedComponents)
-	else if opts.FiberAlgorithm == "fast" then computeFiberInternalFast(A,b,val)
+	if opts.FiberAlgorithm == "lattice" then computeFiberInternalLattice(A,val,ReturnConnectedComponents=>opts.ReturnConnectedComponents)
+	else if opts.FiberAlgorithm == "fast" then computeFiberInternalFast(A,val)
 	else if opts.FiberAlgorithm == "decompose" or opts.FiberAlgorithm == "markov" then computeFiberInternal(A,val,ReturnConnectedComponents=>opts.ReturnConnectedComponents,FiberAlgorithm=>opts.FiberAlgorithm)
 	else error("unknown input for FiberAlgorithm option");
 	);
     if opts.ReturnConnectedComponents then (
 	if (A.cache#"fiberStarters")#?val then (A.cache#"fiberComponents")#val else (if #((A.cache#"fibers")#val) == 0 then {} else {toList (A.cache#"fibers")#val})
-	)else toList (A.cache#"fibers")#val
+	)else for el in keys (A.cache#"fibers")#val list vector el
     );
 
 
 
 computeFiberInternalFast = method();
-computeFiberInternalFast (Matrix,Matrix,List) := (A,b,val) -> (
+computeFiberInternalFast (Matrix,List) := (A,val) -> (
     buildFiber := if (A.cache#"fiberStarters")#?val then toList (A.cache#"fiberStarters")#val else(
 	u:={};
-	for row in entries toricMarkov (b | A) do(
+	for row in entries toricMarkov ((matrix vector val) | A) do(
 	    r := drop(row,1);
 	    if row#0 == 1 and all(r,z->z<=0) then (u = {-r}; break;);
 	    );
@@ -118,13 +118,13 @@ computeFiberInternalLattice = method(
         ReturnConnectedComponents => false,
         }
     );
-computeFiberInternalLattice (Matrix,Matrix,List) := opts -> (A,b,val) -> (
+computeFiberInternalLattice (Matrix,List) := opts -> (A,val) -> (
     M := transpose matrix for basisElement in entries A.cache#"MarkovBasis" list if (A.cache#"fiberValues")#basisElement<<val then basisElement else continue;
     if (numColumns M)==0 then M = transpose matrix{toList((numColumns A):0)};
     latticeOut := if (A.cache#"fiberStarters")#?val then set latticePointsFromMoves(M,transpose matrix{first toList (A.cache#"fiberStarters")#val})
     else(
 	u:={};
-	for row in entries toricMarkov (b | A) do(
+	for row in entries toricMarkov ((matrix vector val) | A) do(
 	    r := drop(row,1);
 	    if row#0 == 1 and all(r,z->z<=0) then (u = {-r}; break;);
 	    );
@@ -207,7 +207,7 @@ fibRecursion (Matrix,List) := opts -> (A, val) -> (
 	);
     if #out==0 then(
 	if opts.FiberAlgorithm == "markov" then (
-	    for row in entries toricMarkov matrix{{transpose matrix {val},A}} do(
+	    for row in entries toricMarkov ((matrix vector val) | A) do(
 		r := drop(row,1);
 		if row#0 == 1 and all(r,z->z<=0) then (out = set{-r}; break;);
 		);
@@ -241,7 +241,7 @@ fiberGraph Matrix := opts -> A -> (
     if not A.cache#?"MarkovBasis" then setupFibers A;
     if opts.ReturnConnectedComponents then(
 	if not A.cache#"componentsComputed" then (
-	    for val in rsort keys A.cache#"fiberStarters" do computeFiber(A,transpose matrix{val},ReturnConnectedComponents=>true,FiberAlgorithm=>opts.FiberAlgorithm);
+	    for val in rsort keys A.cache#"fiberStarters" do computeFiber(A,vector val,ReturnConnectedComponents=>true,FiberAlgorithm=>opts.FiberAlgorithm);
 	    A.cache#"componentsComputed" = true;
 	    );
 	) else (if #(values A.cache#"fiberGraphs")==0 then (
@@ -655,6 +655,63 @@ doc ///
     toricUniversalMarkov
 ///
 
+doc ///
+  Key
+    computeFiber
+    (computeFiber, Matrix,Vector)
+    [computeFiber, ReturnConnectedComponents]
+    [computeFiber, FiberAlgorithm]
+    ReturnConnectedComponents
+    FiberAlgorithm
+  Headline
+    compute a single fiber of configuration matrix
+  Usage
+    F = computeFiber(A,b)
+  Inputs
+    A : Matrix
+      configuration matrix
+    b : Vector
+      value of fiber
+    ReturnConnectedComponents => Boolean
+      if true then return the list of connected components
+      of the fiber, otherwise return fiber as list of vectors
+    FiberAlgorithm => String
+      Choices are "decompose", "markov", "fast" or "lattice": when using "decompose", lots of smaller
+      fibers will autmoaticaly be computed and stored in @TT "A.cache"@. Thus, when computing lots
+      of fibers for one configuration matrix, we recommend "decompose", especially for large fibers.
+      "markov" works very similarly to "decompose" and will be faster for complicated input matrices
+      with lots of rows and columns. Otherwise, "fast" is the best for a one-off computation of a
+      smaller fiber and, if the values of the input matrix $A$ are very large, it is worth trying "lattice".
+  Outputs
+    F : List
+      a complete list of vectors in the fiber b
+  Description
+    Text
+      This function constructs one fiber $b$ of the configuration matrix $A$, which is returned as
+      a list of vectors.
+
+      The algorithm used to compute the fiber can be one of "decompose", "markov", "fast" or
+      "lattice" with "decompose" as the default option. All algorithms will return either the fiber
+      as a list of vectors or a list of the connected components of the fiber, depending on whether
+      the @TO ReturnConnectedComponents@ option is set to @TT "false"@ or @TT "true"@.
+
+      When computing lots of fibers for one configuration matrix, we recommend "decompose",
+      especially for large fibers. "markov" works very similarly to "decompose" and will be faster
+      for complicated input matrices with lots of rows and columns. Otherwise, "fast" is the best
+      for a one-off computation of a smaller fiber and, if the values of the input matrix $A$ are
+      very large, it is worth trying "lattice".
+      
+    Example
+      computeFiber(matrix "3,5,11", vector {27})
+      netList computeFiber(matrix "3,4,6,8,12", vector {12}, ReturnConnectedComponents => true)
+      computeFiber(matrix "51,52,53,54,55,56", vector {614}, FiberAlgorithm => "fast")
+
+  SeeAlso
+    fiberGraph
+    markovBases
+    AllMarkovBases
+///
+
 
 doc ///
   Key
@@ -662,7 +719,6 @@ doc ///
     (fiberGraph, Matrix)
     [fiberGraph, ReturnConnectedComponents]
     [fiberGraph, FiberAlgorithm]
-    ReturnConnectedComponents
   Headline
     generating fibers of a configuration matrix
   Usage
@@ -674,10 +730,11 @@ doc ///
       if true then return the list of connected components
       of each fiber, otherwise return the whole graphs
     FiberAlgorithm => String
-      either "fast" or "graph": "fast" traverses
-      the connected components of the fibers directly; "graph" uses
-      the function @TO connectedComponents@ of the package @TO Graphs@.
-      Use "fast" only if @TO ReturnConnectedComponents@ is set to @TT "true"@
+      affects the computation only when @TO ReturnConnectedComponents@ is @TT "true"@.
+      Choices are "fast", "decompose", "markov" or "lattice": "fast" is recommended as the
+      most reliably quick option, however, if the generating fibers are particularly large,
+      we recommend "decompose" for smaller input matrices $A$ and "markov" for larger input
+      matrices $A$. If the values of the input matrix $A$ are very large, it is worth trying "lattice".
   Outputs
     G : List
       a list of graphs, one for each generating fiber of A
@@ -688,19 +745,28 @@ doc ///
       as a list of graphs where two vectors in a fiber are
       adjacent if their supports have non-trivial intersection.
 
+      If the option @TO ReturnConnectedComponents@ is @TT "false"@,
+      the default setting, then the generating fibers are exhaustively searched
+      using a breadth first search algorithm and vectors
+      in the fibers are added to graph objects from the package
+      @TO Graphs@, with edges added between two vectors if they have non-trivial support.
+
       If the option @TO ReturnConnectedComponents@ is @TT "true"@ then,
       instead of returning a list of graphs, the function returns
-      a list of the connected components of each fiber. In this
-      this case it is recommended to set the option @TO FiberAlgorithm@
-      to @TT "true"@ as this will speed up the calculation.
+      a list of the connected components of each fiber. In this case, an algorithm for
+      the computation can then be chosen using the @TO FiberAlgorithm@ option and these algorithms
+      are much more efficient than using the breadth first search algorithm alonside the
+      @TO Graphs@ package, which is used when the option @TO ReturnConnectedComponents@ is
+      @TT "false"@.
+      
     Example
-      fiberGraph matrix "3,4,5"
-      fiberGraph matrix "1,2,3"
-      fiberGraph(matrix "1,2,3",
-          ReturnConnectedComponents => true,
-          FiberAlgorithm => "fast")
+      netList fiberGraph matrix "3,4,5"
+      netList fiberGraph matrix "1,2,3"
+      netList fiberGraph(matrix "1,2,3", ReturnConnectedComponents => true, FiberAlgorithm => "decompose")
+      netList fiberGraph(matrix "3,4,6,8,12", ReturnConnectedComponents => true, FiberAlgorithm => "fast")
 
   SeeAlso
+    computeFiber
     markovBases
     AllMarkovBases
 ///
