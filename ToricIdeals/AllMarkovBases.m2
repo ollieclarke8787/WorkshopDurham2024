@@ -52,22 +52,33 @@ export {
 computeFiber = method(
     Options => {
         ReturnConnectedComponents => false,
-	FiberAlgorithm => "decompose" -- choose from {decompose,fast,markov,lattice} ordered from best to worst
+	FiberAlgorithm => "decompose" -- choose from {decompose,markov,fast,lattice} ordered from best to worst
         }
     );
 
 computeFiber (Matrix,Vector) := opts -> (A, b) -> (
     if not A.cache#?"MarkovBasis" then setupFibers A;
     val := entries b;
-    if not (A.cache#"fibers")#?val or (opts.ReturnConnectedComponents and (A.cache#"fiberStarters")#?val and not (A.cache#"fiberComponents")#?val) then(
-	if opts.FiberAlgorithm == "lattice" then computeFiberInternalLattice(A,val,ReturnConnectedComponents=>opts.ReturnConnectedComponents)
-	else if opts.FiberAlgorithm == "fast" then computeFiberInternalFast(A,val)
-	else if opts.FiberAlgorithm == "decompose" or opts.FiberAlgorithm == "markov" then computeFiberInternal(A,val,ReturnConnectedComponents=>opts.ReturnConnectedComponents,FiberAlgorithm=>opts.FiberAlgorithm)
-	else error("unknown input for FiberAlgorithm option");
-	);
+    computeFiberInternal(A,val,ReturnConnectedComponents=>opts.ReturnConnectedComponents,FiberAlgorithm=>opts.FiberAlgorithm);
     if opts.ReturnConnectedComponents then (
 	if (A.cache#"fiberStarters")#?val then (A.cache#"fiberComponents")#val else (if #((A.cache#"fibers")#val) == 0 then {} else {toList (A.cache#"fibers")#val})
 	)else for el in keys (A.cache#"fibers")#val list vector el
+    );
+
+
+computeFiberInternal = method(
+    Options => {
+        ReturnConnectedComponents => false,
+	FiberAlgorithm => "decompose"
+        }
+    );
+computeFiberInternal (Matrix,List) := opts -> (A, val) -> (
+    if not (A.cache#"fibers")#?val or (opts.ReturnConnectedComponents and (A.cache#"fiberStarters")#?val and not (A.cache#"fiberComponents")#?val) then(
+	if opts.FiberAlgorithm == "lattice" then computeFiberInternalLattice(A,val,ReturnConnectedComponents=>opts.ReturnConnectedComponents)
+	else if opts.FiberAlgorithm == "fast" then computeFiberInternalFast(A,val)
+	else if opts.FiberAlgorithm == "decompose" or opts.FiberAlgorithm == "markov" then computeFiberInternalDecompose(A,val,ReturnConnectedComponents=>opts.ReturnConnectedComponents,FiberAlgorithm=>opts.FiberAlgorithm)
+	else error("unknown input for FiberAlgorithm option");
+	);
     );
 
 
@@ -161,13 +172,13 @@ computeCCs List := L -> (
 
 
 
-computeFiberInternal = method(
+computeFiberInternalDecompose = method(
     Options => {
         ReturnConnectedComponents => false,
 	FiberAlgorithm => "decompose"
         }
     );
-computeFiberInternal (Matrix,List) := opts -> (A,val) -> (
+computeFiberInternalDecompose (Matrix,List) := opts -> (A,val) -> (
     if opts.FiberAlgorithm == "decompose" then(
 	A.cache#"Ring" = ZZ(monoid[Variables => numRows A + numColumns A,MonomialOrder=>Eliminate numRows A]);
 	A.cache#"RingGenerators" = gens A.cache#"Ring";
@@ -241,7 +252,7 @@ fiberGraph Matrix := opts -> A -> (
     if not A.cache#?"MarkovBasis" then setupFibers A;
     if opts.ReturnConnectedComponents then(
 	if not A.cache#"componentsComputed" then (
-	    for val in rsort keys A.cache#"fiberStarters" do computeFiber(A,vector val,ReturnConnectedComponents=>true,FiberAlgorithm=>opts.FiberAlgorithm);
+	    for val in rsort keys A.cache#"fiberStarters" do computeFiberInternal(A,val,ReturnConnectedComponents=>true,FiberAlgorithm=>opts.FiberAlgorithm);
 	    A.cache#"componentsComputed" = true;
 	    );
 	) else (if #(values A.cache#"fiberGraphs")==0 then (
@@ -440,8 +451,8 @@ markovBases Matrix := A -> (
     for markovBasisAsList in markovBasesAsLists list matrix markovBasisAsList
     );
 
-markovBases(Matrix, Ring) := opts -> (A, R) -> (
-    listOfBases := markovBases(A, opts);
+markovBases(Matrix, Ring) := (A, R) -> (
+    listOfBases := markovBases A;
     apply(listOfBases, B -> toBinomial(B, R))
     )
 
@@ -705,6 +716,7 @@ doc ///
       computeFiber(matrix "3,5,11", vector {27})
       netList computeFiber(matrix "3,4,6,8,12", vector {12}, ReturnConnectedComponents => true)
       computeFiber(matrix "51,52,53,54,55,56", vector {614}, FiberAlgorithm => "fast")
+      computeFiber(matrix "2,4,5,8;7,2,6,1;11,4,3,10", vector{26828,37890,62792}, FiberAlgorithm => "lattice")
 
   SeeAlso
     fiberGraph
