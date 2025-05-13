@@ -2,8 +2,7 @@ newPackage(
     "AllMarkovBases",
     Version => "1.0",
     Date => "May 08, 2025",
-    Headline => "package for computing all minimal Markov bases
-    of a configuration matrix",
+    Headline => "package for computing all minimal Markov bases of a configuration matrix",
     Authors => {
         {Name => "Alexander Milner",
             Email => "A.J.C.Milner@sms.ed.ac.uk",
@@ -311,7 +310,7 @@ setupFibers Matrix := A -> (
 -----------------------------------------------------------------------------------------------------
 
 
--- use Normaliz to comptue the points in a fiber
+-- use Normaliz to compute the points in a fiber
 -- A is the matrix of the toric ideal
 -- v is the fiber:
 -- return all point in \NN^n \cap \{x : Ax = Av\}
