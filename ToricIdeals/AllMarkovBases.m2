@@ -197,7 +197,7 @@ computeFiberInternalDecompose (Matrix,List) := opts -> (A,val) -> (
         out = apply(connectedComponents graph(out,pairs G),z->toList union z);
         out = out | apply(toList ((A.cache#"fiberStarters")#val - (flatten out)),v->{v});
         (A.cache#"fiberComponents")#val = out;
-        (A.cache#"fibers")#val = flatten out;
+        (A.cache#"fibers")#val = set flatten out;
         )else fibRecursion(A,val,FiberAlgorithm=>opts.FiberAlgorithm);
     );
 
