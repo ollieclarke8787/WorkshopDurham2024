@@ -179,7 +179,7 @@ F matrix {{3},{10}}
 ehrhartQuasiPolynomial = method()
 ehrhartQuasiPolynomial(Polyhedron, MultivariateQuasiPolynomial) := (P, w) -> (
 	-- R := ring w; -- TODO: define this ...
-	-- ambientDimension := rank target vertices P; 
+	-- ambientDimension := rank target vertices P;
 	-- assert(numgens R == ambientDimension); -- check that the polynomial lie in a ring with the right number of variables
 
 
@@ -191,7 +191,7 @@ ehrhartQuasiPolynomial(Polyhedron, MultivariateQuasiPolynomial) := (P, w) -> (
 ehrhartSeries = method()
 ehrhartSeries(Polyhedron, RingElement) := (P, f) -> (
 	R := ring f;
-	ambientDimension := rank target vertices P; 
+	ambientDimension := rank target vertices P;
 	assert(numgens R == ambientDimension); -- check that the polynomial lie in a ring with the right number of variables
 
 
@@ -204,4 +204,56 @@ ehrhartSeries(Polyhedron, RingElement) := (P, f) -> (
 
 
 P = convexHull matrix {{0,0,1,3}, {0,1,0,3}}
-ambientDimension = rank target vertices P 
+ambientDimension = rank target vertices P
+
+
+-----------------------------------------
+
+
+-- Fix polytope (rational / lattice) P
+-- Fix a (quasi / normal)-polynomial w
+
+-- Compute: EhrhartQP(P, w)
+
+-- Assume we know the regions of polynomiality of w
+
+-- Problem 1.
+-- Can we check if w if of the form of Theorem 1.1 by looking at its evaluation at a basis and cooking
+-- up the matrix C, vectors d_i, e that would have to exist in this case?
+-- Is there an algorithm to check this? (Literature? - couldn't find anything after a quick look)
+-- [Sounds like a potentially very difficult problem, note that given w we need to determine C, d_i, e,
+--  in particular, we need to determine the dimension of Q(x_1 .. x_n) (m), which could be very large]
+
+
+-- If w is of the form of Theorem 1.1 with (e = 0) then we have big shortcut: compute EhrhartQP(P*)
+-- If w is of the form of Theorem 1.1 with (e != 0) then we can use it to compute the number of lattice points
+
+
+-- Problem 2.
+-- As in Theorem 1.1: given C, d_i, e, what is the multivariate Quasi polynomial w(x_1 .. x_n)?
+-- In particular, is there an algorithm to compute its regions of polynomiality?
+-- Can we bound the number of polynomial regions of w? And the degree of the polynomial on those regions?
+
+-- Potentially we can start by looking at small m i.e., the polytopes Q are low dimensional, or just points
+--
+-- How do the regions of polynomiality relate to the denomiator of Q(f_i) where f_i are the standard basis vectors?
+-- Is it the case that all of these polytopes Q(f_i) have the same denominator? (Maybe no?)
+--
+
+
+--
+-- If we can do Problem 2. even for some small families of examples, then one way to use Theorem 1.1
+-- is to precompute some families of examples where we obtain w from C, d_i, e - like a database -
+-- as a quick check on the input
+
+
+
+-- TODO:
+-- If w is a polynomial (not quasi-polynomial) then we can have a default option to use
+-- Normaliz by passing in the polynomial into the input file: see section 7.9.1 in the Normaliz documentation
+--
+
+-- Problem 3.
+-- How can we use this (the polynomial weight case) to compute the general multi-variate
+-- quasipolynomial weight case? (try doing it region by region)
+--
