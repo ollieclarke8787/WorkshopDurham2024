@@ -236,6 +236,137 @@ orbitPolytope Matrix := p -> (
     )
 
 
+
+
+
+
+
+
+
+
+
+---------------------------------------
+-- For the hypersimplex, Alan asks if there is a bijection between the
+-- DOSPs and a (equivariant) basis for the algebra R/J where
+--
+-- R = CC[x_s : s \in \binom{[n]}{k}] \subseteq CC[x_1 .. x_n]
+--   where x_s is the product \prod x_i taken over i \in s
+--
+-- J = ideal(x_i * e_{k-1}(x_1 .. x_{i-1}, x_{i+1} .. x_n) : i \in [n])
+--   where e_{k-1} is the (k-1)-th symmetric polynomial
+
+needsPackage "SubalgebraBases"
+needsPackage "FourTiTwo"
+
+
+hypersimplexIdeal = method()
+hypersimplexIdeal(ZZ, ZZ) := (n, k) -> (
+		S := subsets(1 .. n, k);
+		x := symbol x;
+		R := QQ[for s in S list x_(toSequence s), MonomialOrder => GLex];
+		lookupGen := hashTable for i from 0 to #S-1 list S_i => (gens R)_i;
+		J := ideal for i from 1 to n list sum (
+				S' := subsets(1 .. i-1 | i+1 .. n, k-1);
+				apply(S', s -> lookupGen#(sort({i} | s)))
+				);
+		-- 4ti2 to compute the toric part of the ideal
+		A := transpose matrix for s in S list for i from 1 to n list if member(i, s) then 1 else 0;
+		K := toricGroebner(A, R);
+		-*
+		y := symbol y;
+		C := QQ[y_1 .. y_n];
+		m := map(C, R, for s in S list product for i in s list y_i);
+		K := ker m; -- would be much faster to do this with 4ti2
+		*-
+		J + K
+		)
+
+
+
+-- Ollie's conjecture for the basis of the EhrhartRing / linear hilbertSeries
+-- given by DOSP indexed elements: x[A]^w + x[B]^w
+-- where D = {A, B} is a DOSP given as a partition of [n]
+
+testConj = method(
+		Options => {
+				Verbose => false,
+				ReturnNewBasis => false,
+				ReturnDosps => false
+				}
+		)
+testConj ZZ := opts -> n -> (
+		if opts.Verbose then print("-- initial setup");
+		assert(n >= 4); -- assume n >= 4
+		I := hypersimplexIdeal(n, 2);
+		R := ring I;
+		Q := R/I;
+
+		B := basis Q;
+		M := image B;
+
+		subsetList := subsets(1 .. n, 2);
+		lookupQGen := hashTable for i from 0 to #subsetList - 1 list subsetList_i => Q_i;
+
+		if opts.Verbose then print("-- computing dosps");
+		dosps := flatten for i from 0 to n // 2 list (
+				-- partitions {A, B} where |A| = i
+				if i == 1 then continue
+				else if 2*i < n then for s in subsets(1 .. n, i) list (
+						{s, select(toList(1 .. n), i -> not member(i, s))}
+						)
+				else (
+						-- 2*i == n
+						for s in subsets(2 .. n, i-1) list (
+								{{1} | s, select(toList(2 .. n), i -> not member(i, s))}
+								)
+						)
+				);
+
+		if opts.Verbose then print("-- constructing proposed basis");
+		B' := for D in dosps list (
+				A := D_0;
+				B := D_1;
+
+				xA := (sum for s in subsets(A, 2) list lookupQGen#s)_Q;
+				xB := (sum for s in subsets(B, 2) list lookupQGen#s)_Q;
+
+				windingNumber := sum for i from 0 to #A - 1 list (
+						if i == #A - 1 then (if A_0 == 1 and A_i == n then 0 else 1)
+						else if A_(i+1) - A_i == 1 then 0
+						else 1
+						);
+
+				xA^windingNumber + xB^windingNumber
+				);
+
+		if opts.Verbose then print("-- creating module");
+		M' := image matrix {for b in B' list b_Q};
+
+		if opts.Verbose then print("-- testing equality of modules");
+
+		result := {(M == M')}; -- equality of modules
+
+		if opts.ReturnNewBasis then result = result | {B'};
+		if opts.ReturnDosps then result = result | {dosps};
+
+		toSequence result
+		)
+
+
+-- get the winding number of a DOSP D = {A, B}
+-- for k = 2
+windingNumber = method()
+windingNumber(List, ZZ) := (D, n) -> (
+		A := D_0;
+		sum for i from 0 to #A - 1 list (
+				if i == #A - 1 then (if A_0 == 1 and A_i == n then 0 else 1)
+				else if A_(i+1) - A_i == 1 then 0
+				else 1
+				)
+		)
+
+
+
 end
 
 load "equivariantEhrhart.m2"
@@ -330,3 +461,169 @@ P = convexHull transpose matrix {
 		}
 
 netList elapsedTime equivariantEhrhartSeries P
+
+
+
+
+
+
+
+---------------------------------------------------------------------------------
+n = 4
+k = 2
+
+
+S = subsets(1 .. n, k)
+
+transpose matrix for s in S list for i from 1 to n list if member(i, s) then 1 else 0
+x = symbol x
+
+R = QQ[for s in S list x_(toSequence s)]
+
+lookupGen = hashTable for i from 0 to #S-1 list S_i => (gens R)_i
+
+J = ideal for i from 1 to n list sum (
+		S' = subsets(1 .. i-1 | i+1 .. n, k-1);
+		apply(S', s -> lookupGen#(sort({i} | s)))
+		)
+
+C = QQ[y_1 .. y_n]
+m = map(C, R, for s in S list product for i in s list y_i)
+K = ker m
+
+I = J + K
+transpose gens gb I
+dim I
+
+Q = R/I
+
+SQ = subring gens Q
+gens sagbi SQ
+
+hilbertSeries(Q, Order => 3)
+
+F = res I
+
+---------------------
+
+load "equivariantEhrhart.m2"
+I = hypersimplexIdeal(4, 2);
+R = ring I
+Q = R/I
+hilbertSeries(I, Order => 10)
+
+transpose basis Q
+transpose presentation Q
+transpose matrix {sort first entries basis Q}
+
+
+
+(gens Q)_0 + (gens Q)_5 -- x_(1,2) + x_(3,4)
+(gens Q)_2 + (gens Q)_3 -- x_(2,3) + x_(1,4)
+(gens Q)_1^2 + (gens Q)_4^2 -- x_(2,4)^2 + x_(1,3)^2
+
+--------------
+
+I = hypersimplexIdeal(6, 2);
+R = ring I
+Q = R/I
+hilbertSeries(I, Order => 10)
+
+transpose basis Q
+transpose presentation Q
+transpose matrix {sort first entries basis Q}
+
+
+
+(gens Q)_0 + (gens Q)_5 -- x_(1,2) + x_(3,4)
+(gens Q)_2 + (gens Q)_3 -- x_(2,3) + x_(1,4)
+(gens Q)_1^2 + (gens Q)_4^2 -- x_(2,4)^2 + x_(1,3)^2
+
+
+
+
+
+use Q
+
+b_1 = x_(1,2)
+b_2 = x_(1,4)
+b_1 + b_2
+
+b_1^2
+b_2^2
+
+b_1^2 - b_2^2
+
+
+----------------------
+-- Code for testing Conjecture for C-basis of the algebra
+--
+
+
+-- Rough code used in creating the function "testConj"
+
+n = 6
+k = 2
+
+I = hypersimplexIdeal(n, k);
+R = ring I
+Q = R/I
+hilbertSeries(I, Order => 10)
+B = basis Q
+M = image B
+
+
+subsetList = subsets(1 .. n, k)
+lookupQGen = hashTable for i from 0 to #subsetList - 1 list subsetList_i => Q_i
+
+
+dosps = flatten for i from 0 to n // 2 list (
+		-- partitions {A, B} where |A| = i
+		if 2*i < n then for s in subsets(1 .. n, i) list (
+				{s, select(toList(1 .. n), i -> not member(i, s))}
+				)
+		else (
+				-- 2*i == n
+				for s in subsets(2 .. n, i-1) list (
+						{{1} | s, select(toList(2 .. n), i -> not member(i, s))}
+						)
+				)
+		)
+
+A = {1,2,3}
+B = {4,5,6}
+
+xA = (sum for s in subsets(A, 2) list lookupQGen#s)_Q
+xB = (sum for s in subsets(B, 2) list lookupQGen#s)_Q
+
+windingNumber = sum for i from 0 to #A - 1 list (
+		if i == #A - 1 then (if A_0 == 1 and A_i == n then 0 else 1)
+		else if A_(i+1) - A_i == 1 then 0
+		else 1
+		)
+
+
+xA^windingNumber + xB^windingNumber
+
+------------------------------------
+
+
+----------------------------------------
+-- Tests for the k=2 Basis Conjecture --
+----------------------------------------
+restart
+load "equivariantEhrhart.m2"
+
+testConj(9)
+testConj(10, Verbose => true)
+
+-- conjecture seems to be true up and including to n = 10
+
+n = 6
+(result, B, dosps) = testConj(n, ReturnNewBasis => true, ReturnDosps => true);
+
+-- basis elements:
+netList B
+
+-- Basis element | DOSP | winding number
+netList for i from 0 to #B -1 list {B_i, dosps_i, windingNumber(dosps_i, n)}
